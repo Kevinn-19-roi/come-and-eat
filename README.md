@@ -1,36 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Come & Eat
 
-## Getting Started
+Fondation locale du site de commande et de l’espace administrateur Come & Eat.
 
-First, run the development server:
+## Démarrage
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Le projet utilise actuellement des données de démonstration dans `src/data/mock-data.ts`. Les composants passent par les interfaces de `src/services/repositories.ts`, prêtes à recevoir des adaptateurs Supabase.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environnement
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Copier `.env.example` vers `.env.local` uniquement quand les services définitifs existent. Ne jamais committer `.env.local` ni une clé de service.
 
-## Learn More
+## Données locales
 
-To learn more about Next.js, take a look at the following resources:
+- panier : `localStorage` ;
+- modifications admin : `localStorage` ;
+- images ajoutées : Data URL locale (limite 2,5 Mo), via une interface remplaçable par Supabase Storage ;
+- migration proposée : `supabase/migrations/0001_initial_schema.sql`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Limites de cette phase
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Pas d’authentification admin, de paiement réel, de synchronisation serveur ou d’envoi de message tant que les services client ne sont pas connectés.

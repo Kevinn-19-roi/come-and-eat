@@ -1,0 +1,1 @@
+import { PlaceholderAdmin } from '@/components/admin-ui';export default function Page(){return <PlaceholderAdmin title="Livraison" description="Les zones, frais et disponibilités de livraison seront configurés ici."/>}

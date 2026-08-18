@@ -1,0 +1,1 @@
+import { PlaceholderAdmin } from '@/components/admin-ui';export default function Page(){return <PlaceholderAdmin title="Messages" description="Les demandes reçues depuis le site seront regroupées ici."/>}

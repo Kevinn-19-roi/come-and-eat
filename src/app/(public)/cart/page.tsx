@@ -1,0 +1,1 @@
+import type { Metadata } from 'next';import { CartPage } from '@/components/cart-page';export const metadata:Metadata={title:'Panier'};export default function Page(){return <><section className="page-hero"><div className="container"><p className="eyebrow">Votre sélection</p><h1 className="page-title">Mon panier</h1></div></section><CartPage/></>}

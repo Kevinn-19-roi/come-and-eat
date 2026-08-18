@@ -1,0 +1,1 @@
+import Link from 'next/link';export default function NotFound(){return <div className="container empty" style={{padding:'100px 0'}}><span>🍽️</span><h1>Page introuvable</h1><p className="lead">Cette page n’est pas au menu.</p><Link href="/" className="btn btn-dark">Retour à l’accueil</Link></div>}

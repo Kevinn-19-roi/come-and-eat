@@ -1,0 +1,4 @@
+import { notFound } from 'next/navigation';import type { Metadata } from 'next';import { ProductDetail } from '@/components/product-detail';import { localCatalogRepository } from '@/services/repositories';
+export async function generateStaticParams(){return (await localCatalogRepository.getProducts()).map(p=>({slug:p.slug}))}
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const product=await localCatalogRepository.getProductBySlug(slug);return {title:product?.name??'Produit'}}
+export default async function ProductPage({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const product=await localCatalogRepository.getProductBySlug(slug);if(!product)notFound();const all=await localCatalogRepository.getOptionGroups();return <ProductDetail product={product} groups={all.filter(g=>product.optionGroupIds.includes(g.id))}/>}

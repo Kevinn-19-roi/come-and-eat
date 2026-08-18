@@ -1,0 +1,1 @@
+import { PlaceholderAdmin } from '@/components/admin-ui';export default function Page(){return <PlaceholderAdmin title="Paramètres" description="Les coordonnées, horaires et préférences générales du restaurant seront configurés ici."/>}

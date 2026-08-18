@@ -1,0 +1,1 @@
+import { PlaceholderAdmin } from '@/components/admin-ui';export default function Page(){return <PlaceholderAdmin title="Contenu du site" description="Les textes de l’accueil, l’histoire et les informations de contact seront modifiables ici."/>}

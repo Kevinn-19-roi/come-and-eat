@@ -1,6 +1,19 @@
-export function getSupabasePublicEnv(){
- const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const anonKey=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY??process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
- if(!url)throw new Error('SUPABASE_URL_MISSING');if(!anonKey)throw new Error('SUPABASE_PUBLIC_KEY_MISSING');
- return {url:url.replace(/\/rest\/v1\/?$/,''),anonKey};
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabasePublishableKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabasePublicKey = supabasePublishableKey || supabaseAnonKey;
+
+export function getSupabasePublicEnv() {
+  if (!supabaseUrl) throw new Error("SUPABASE_URL_MISSING");
+  if (!supabasePublicKey) throw new Error("SUPABASE_PUBLIC_KEY_MISSING");
+
+  return {
+    url: supabaseUrl.replace(/\/rest\/v1\/?$/, ""),
+    publicKey: supabasePublicKey,
+  };
 }
-export function isSupabaseConfigured(){return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL&&(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY??process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY))}
+
+export function isSupabaseConfigured() {
+  return Boolean(supabaseUrl && supabasePublicKey);
+}

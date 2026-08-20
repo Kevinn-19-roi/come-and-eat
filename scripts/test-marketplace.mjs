@@ -17,4 +17,9 @@ assert.doesNotMatch(generatedFieldsFix.replace(productGeneratedFunction,''),/new
 for(const table of ['site_settings','homepage_sections'])assert.ok(!generatedFieldsFix.includes(`on public.${table}`),`Trigger généré interdit sur ${table}`);
 assert.equal((seed.match(/insert into public\.categories/g)||[]).length,1);assert.ok(seed.includes("'Ivoirien'"));assert.ok(seed.includes("'Come & Eat Cocody'"));
 const browser=await readFile(new URL('../src/lib/supabase/browser.ts',import.meta.url),'utf8');assert.ok(!browser.includes('SUPABASE_SERVICE_ROLE_KEY'),'La service role ne doit jamais être importée côté navigateur.');
+const publicEnv=await readFile(new URL('../src/lib/supabase/env.ts',import.meta.url),'utf8');
+assert.doesNotMatch(publicEnv,/process\.env\s*\[/,'Les variables publiques Supabase doivent être référencées statiquement pour Next.js.');
+for(const variable of ['NEXT_PUBLIC_SUPABASE_URL','NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY','NEXT_PUBLIC_SUPABASE_ANON_KEY'])assert.ok(publicEnv.includes(`process.env.${variable}`),`Référence statique absente: ${variable}`);
+assert.ok(publicEnv.indexOf('supabasePublishableKey || supabaseAnonKey')>-1,'La publishable key doit être prioritaire sur le fallback anon.');
+assert.ok(!publicEnv.includes('SUPABASE_SERVICE_ROLE_KEY'),'La service role doit rester dans le module serveur uniquement.');
 console.log(`${requiredTables.length} tables, RLS, rôles, Storage, seeds et séparation client/serveur validés.`);

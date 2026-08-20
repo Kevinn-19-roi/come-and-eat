@@ -1,3 +1,4 @@
+-- Ce seed s'exécute après la correction des triggers générés (migration 002).
 insert into public.categories(name,slug,sort_order) values
 ('Burgers','burgers',10),('Poulet','poulet',20),('Pizza','pizza',30),('Cuisine ivoirienne','cuisine-ivoirienne',40),
 ('Cuisine africaine','cuisine-africaine',50),('Grillades','grillades',60),('Fast-food','fast-food',70),('Sandwichs & wraps','sandwichs-wraps',80),

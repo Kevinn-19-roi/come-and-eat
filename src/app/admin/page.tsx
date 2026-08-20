@@ -1,1 +1,1 @@
-import { Dashboard } from '@/components/admin-ui';export default function Page(){return <Dashboard/>}
+import {Dashboard} from '@/components/admin-ui';import {requireAdmin} from '@/lib/auth/admin';import {getAdminDashboardData} from '@/services/admin-dashboard';export default async function Page(){await requireAdmin();const data=await getAdminDashboardData();return <Dashboard data={data}/>}

@@ -1,0 +1,2 @@
+import {requireVendorManager} from '@/lib/auth/vendor';import {getVendorRestaurant} from '@/services/vendor-dashboard';import {HoursForm} from './hours-form';
+export default async function HoursPage(){const context=await requireVendorManager();const{hours}=await getVendorRestaurant(context.restaurant!.id);return <><div className="vendor-page-head"><div><p className="section-kicker">Disponibilité</p><h1>Horaires</h1><p>Indiquez simplement quand vous acceptez les commandes.</p></div></div><HoursForm hours={hours}/></>}

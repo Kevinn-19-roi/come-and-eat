@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises
 const schema=await readFile(new URL('../supabase/migrations/202608200001_marketplace_schema.sql',import.meta.url),'utf8');
 const generatedFieldsFix=await readFile(new URL('../supabase/migrations/202608200002_fix_generated_fields.sql',import.meta.url),'utf8');
 const seed=await readFile(new URL('../supabase/migrations/202608200003_seed_marketplace.sql',import.meta.url),'utf8');
+const vendorSecurity=await readFile(new URL('../supabase/migrations/202608200004_vendor_panel_security.sql',import.meta.url),'utf8');
 const requiredTables=['profiles','restaurants','restaurant_members','seller_applications','categories','cuisine_types','restaurant_cuisine_types','restaurant_hours','media','products','product_option_groups','product_options','product_option_group_links','delivery_zones','orders','restaurant_orders','order_items','favorites','promotions','site_settings','homepage_sections'];
 for(const table of requiredTables)assert.match(schema,new RegExp(`create table public\\.${table}\\b`),`Table absente: ${table}`);
 for(const table of requiredTables)assert.match(schema,new RegExp(`alter table public\\.${table} enable row level security`),`RLS absente: ${table}`);
@@ -22,4 +23,9 @@ assert.doesNotMatch(publicEnv,/process\.env\s*\[/,'Les variables publiques Supab
 for(const variable of ['NEXT_PUBLIC_SUPABASE_URL','NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY','NEXT_PUBLIC_SUPABASE_ANON_KEY'])assert.ok(publicEnv.includes(`process.env.${variable}`),`Référence statique absente: ${variable}`);
 assert.ok(publicEnv.indexOf('supabasePublishableKey || supabaseAnonKey')>-1,'La publishable key doit être prioritaire sur le fallback anon.');
 assert.ok(!publicEnv.includes('SUPABASE_SERVICE_ROLE_KEY'),'La service role doit rester dans le module serveur uniquement.');
+assert.ok(vendorSecurity.includes('create table if not exists public.category_requests'),'Demandes de catégorie absentes');
+for(const fn of ['restaurant_member_role_for','can_manage_restaurant','vendor_update_restaurant_order_status'])assert.ok(vendorSecurity.includes(`function public.${fn}`),`Fonction vendeur absente: ${fn}`);
+for(const policy of ['products_manager_write','hours_manager_write','promotions_manager_write','category_requests_own_create'])assert.ok(vendorSecurity.includes(`policy ${policy}`),`Politique vendeur absente: ${policy}`);
+assert.ok(vendorSecurity.includes('protect_product_moderation'),'Protection de la modération produit absente');
+assert.ok(vendorSecurity.includes("in ('owner','manager')"),'Séparation owner/manager/staff absente');
 console.log(`${requiredTables.length} tables, RLS, rôles, Storage, seeds et séparation client/serveur validés.`);

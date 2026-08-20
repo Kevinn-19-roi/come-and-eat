@@ -9,7 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/test-marketplace.mjs",
-    "test:vendor-rls": "node scripts/test-vendor-rls.mjs"
+    "test:vendor-rls": "node scripts/test-vendor-rls.mjs",
+    "test:official-store": "node scripts/test-official-store.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

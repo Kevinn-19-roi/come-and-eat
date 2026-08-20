@@ -3,6 +3,7 @@ const schema=await readFile(new URL('../supabase/migrations/202608200001_marketp
 const generatedFieldsFix=await readFile(new URL('../supabase/migrations/202608200002_fix_generated_fields.sql',import.meta.url),'utf8');
 const seed=await readFile(new URL('../supabase/migrations/202608200003_seed_marketplace.sql',import.meta.url),'utf8');
 const vendorSecurity=await readFile(new URL('../supabase/migrations/202608200004_vendor_panel_security.sql',import.meta.url),'utf8');
+const publicAuthOfficialStore=await readFile(new URL('../supabase/migrations/202608200005_public_auth_official_store.sql',import.meta.url),'utf8');
 const requiredTables=['profiles','restaurants','restaurant_members','seller_applications','categories','cuisine_types','restaurant_cuisine_types','restaurant_hours','media','products','product_option_groups','product_options','product_option_group_links','delivery_zones','orders','restaurant_orders','order_items','favorites','promotions','site_settings','homepage_sections'];
 for(const table of requiredTables)assert.match(schema,new RegExp(`create table public\\.${table}\\b`),`Table absente: ${table}`);
 for(const table of requiredTables)assert.match(schema,new RegExp(`alter table public\\.${table} enable row level security`),`RLS absente: ${table}`);
@@ -28,4 +29,12 @@ for(const fn of ['restaurant_member_role_for','can_manage_restaurant','vendor_up
 for(const policy of ['products_manager_write','hours_manager_write','promotions_manager_write','category_requests_own_create'])assert.ok(vendorSecurity.includes(`policy ${policy}`),`Politique vendeur absente: ${policy}`);
 assert.ok(vendorSecurity.includes('protect_product_moderation'),'Protection de la modération produit absente');
 assert.ok(vendorSecurity.includes("in ('owner','manager')"),'Séparation owner/manager/staff absente');
+assert.ok(publicAuthOfficialStore.includes('is_official boolean not null default false'),'Marqueur de boutique officielle absent');
+assert.ok(publicAuthOfficialStore.includes('restaurants_one_official_idx'),'Unicité de la boutique officielle absente');
+assert.ok(publicAuthOfficialStore.includes('create or replace function public.can_manage_restaurant'),'Protection de la boutique officielle absente');
+assert.ok(publicAuthOfficialStore.includes('and not r.is_official'),'Un membre vendeur ne doit pas administrer la boutique officielle');
+const publicHeader=await readFile(new URL('../src/components/public-header.tsx',import.meta.url),'utf8');
+const publicNavigation=await readFile(new URL('../src/lib/public-navigation.ts',import.meta.url),'utf8');
+for(const label of ['Connexion','Inscription','Mon compte','Devenir vendeur','Panel admin','Mon restaurant'])assert.ok(publicNavigation.includes(label),`Navigation publique absente: ${label}`);
+assert.ok(publicHeader.includes('Déconnexion'),'Déconnexion publique absente');
 console.log(`${requiredTables.length} tables, RLS, rôles, Storage, seeds et séparation client/serveur validés.`);

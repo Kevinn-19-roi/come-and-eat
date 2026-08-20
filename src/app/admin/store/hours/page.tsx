@@ -1,0 +1,2 @@
+import Link from 'next/link';import {requireAdmin} from '@/lib/auth/admin';import {getOfficialStoreDetails} from '@/services/official-store';import {OfficialHoursForm} from '@/components/official-hours-form';
+export default async function Page(){await requireAdmin();const{hours}=await getOfficialStoreDetails();return <><div className="admin-page-head"><div><p className="eyebrow">Boutique officielle</p><h1>Horaires</h1></div><Link className="btn btn-outline" href="/admin/store">Retour à la boutique</Link></div><OfficialHoursForm hours={hours}/></>}

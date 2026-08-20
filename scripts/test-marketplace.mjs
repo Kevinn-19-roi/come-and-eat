@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+const schema=await readFile(new URL('../supabase/migrations/202608200001_marketplace_schema.sql',import.meta.url),'utf8');
+const seed=await readFile(new URL('../supabase/migrations/202608200002_seed_marketplace.sql',import.meta.url),'utf8');
+const requiredTables=['profiles','restaurants','restaurant_members','seller_applications','categories','cuisine_types','restaurant_cuisine_types','restaurant_hours','media','products','product_option_groups','product_options','product_option_group_links','delivery_zones','orders','restaurant_orders','order_items','favorites','promotions','site_settings','homepage_sections'];
+for(const table of requiredTables)assert.match(schema,new RegExp(`create table public\\.${table}\\b`),`Table absente: ${table}`);
+for(const table of requiredTables)assert.match(schema,new RegExp(`alter table public\\.${table} enable row level security`),`RLS absente: ${table}`);
+for(const role of ['customer','vendor','admin','super_admin'])assert.ok(schema.includes(`'${role}'`),`Rôle absent: ${role}`);
+for(const fn of ['is_restaurant_member','admin_set_user_role','approve_seller_application','restaurant_is_open','place_marketplace_order'])assert.ok(schema.includes(`function public.${fn}`),`Fonction absente: ${fn}`);
+assert.ok(schema.includes("bucket_id='restaurant-media'"),'Politiques Storage absentes');
+assert.ok(schema.includes('product_sku_sequence'),'SKU automatique absent');assert.ok(schema.includes('slugify'),'Slug automatique absent');
+assert.equal((seed.match(/insert into public\.categories/g)||[]).length,1);assert.ok(seed.includes("'Ivoirien'"));assert.ok(seed.includes("'Come & Eat Cocody'"));
+const browser=await readFile(new URL('../src/lib/supabase/browser.ts',import.meta.url),'utf8');assert.ok(!browser.includes('SUPABASE_SERVICE_ROLE_KEY'),'La service role ne doit jamais être importée côté navigateur.');
+console.log(`${requiredTables.length} tables, RLS, rôles, Storage, seeds et séparation client/serveur validés.`);

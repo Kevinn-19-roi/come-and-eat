@@ -3,7 +3,7 @@ export interface Media { id: ID; name: string; url: string; alt: string; created
 export interface Category { id: ID; name: string; slug: string; image?: Media; visible: boolean; order: number }
 export interface ProductOption { id: ID; name: string; price: number; available: boolean }
 export interface ProductOptionGroup { id: ID; name: string; required: boolean; multiple: boolean; options: ProductOption[] }
-export interface Product { id: ID; sku: string; name: string; slug: string; categoryId: ID; price: number; description: string; image?: Media; available: boolean; optionGroupIds: ID[]; archived?: boolean }
+export interface Product { id: ID; restaurantId?: ID; sku: string; name: string; slug: string; categoryId: ID; price: number; description: string; image?: Media; available: boolean; isFeatured?: boolean; optionGroupIds: ID[]; archived?: boolean; moderationStatus?: 'pending'|'approved'|'flagged'|'hidden'; hiddenByAdmin?: boolean }
 export interface CartSelection { groupId: ID; optionId: ID; name: string; price: number }
 export interface CartItem { id: ID; productId: ID; name: string; unitPrice: number; quantity: number; image?: string; selections: CartSelection[] }
 export interface Cart { items: CartItem[]; subtotal: number; deliveryFee: number; total: number }

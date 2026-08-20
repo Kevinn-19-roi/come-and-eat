@@ -1,0 +1,16 @@
+begin;
+select plan(12);
+select has_table('public','restaurants','restaurants existe');
+select has_table('public','restaurant_members','restaurant_members existe');
+select has_table('public','products','products existe');
+select has_table('public','restaurant_orders','restaurant_orders existe');
+select has_table('public','site_settings','site_settings existe');
+select has_function('public','is_restaurant_member',array['uuid'],'isolation vendeur disponible');
+select has_function('public','admin_set_user_role',array['uuid','app_role'],'promotion administrateur disponible');
+select has_function('public','restaurant_is_open',array['uuid','timestamp with time zone'],'calcul ouverture disponible');
+select policies_are('public','products',array['products_public_read','products_member_write'],'RLS produits limitée');
+select policies_are('public','restaurant_orders',array['restaurant_orders_vendor_read','restaurant_orders_vendor_update'],'RLS sous-commandes limitée');
+select policies_are('public','site_settings',array['settings_public_read','settings_admin_write'],'RLS paramètres limitée');
+select col_is_unique('public','products','sku','SKU unique');
+select * from finish();
+rollback;

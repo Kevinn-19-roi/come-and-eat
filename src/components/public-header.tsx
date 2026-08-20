@@ -2,7 +2,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { siteConfig } from '@/config/site';
 import { useCart } from './cart-provider';
 
@@ -12,4 +12,9 @@ const nav = [
   { href:'/cart', label:'Commander' },
   { href:'/contact', label:'Contact' },
 ];
-export function PublicHeader(){const [open,setOpen]=useState(false);const pathname=usePathname();const {count}=useCart();return <><div className="service-bar"><div className="store-container"><span>{siteConfig.announcement}</span><span className="service-meta">{siteConfig.contact.phone}<i>·</i>{siteConfig.hours}</span></div></div><header className="site-header"><div className="store-container nav-wrap"><Link href="/" className="official-logo" aria-label={`${siteConfig.brand.name} — accueil`}><Image src={siteConfig.brand.logo} alt={`${siteConfig.brand.name} — ${siteConfig.brand.tagline}`} width={170} height={92} priority/></Link><button className="mobile-menu" onClick={()=>setOpen(!open)} aria-expanded={open} aria-controls="public-navigation"><span aria-hidden>{open?'×':'☰'}</span><span className="sr-only">Menu</span></button><nav id="public-navigation" className={open?'nav-links open':'nav-links'} onClick={()=>setOpen(false)}>{nav.map(item=><Link key={item.href} href={item.href} className={pathname===item.href?'active':''}>{item.label}</Link>)}</nav><Link href="/cart" className="cart-link"><span>Panier</span>{count>0?<b>{count}</b>:null}</Link></div></header></>}
+export function PublicHeader(){
+ const [open,setOpen]=useState(false);const pathname=usePathname();const {count}=useCart();
+ useEffect(()=>{document.body.classList.toggle('menu-open',open);return()=>document.body.classList.remove('menu-open')},[open]);
+ useEffect(()=>{const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false)};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[]);
+ const activeHref=pathname.startsWith('/menu')?'/menu':pathname.startsWith('/cart')||pathname.startsWith('/checkout')?'/cart':pathname;
+ return <><div className="service-bar"><div className="store-container"><span>{siteConfig.announcement}</span><span className="service-meta">{siteConfig.contact.phone}<i>·</i>{siteConfig.hours}</span></div></div><header className="site-header"><div className="store-container nav-wrap"><Link href="/" className="official-logo" aria-label={`${siteConfig.brand.name} — accueil`}><span className="logo-frame"><Image src={siteConfig.brand.logo} alt={`${siteConfig.brand.name} — ${siteConfig.brand.tagline}`} width={170} height={92} priority/></span></Link><nav id="public-navigation" className={open?'nav-links open':'nav-links'} aria-label="Navigation principale">{nav.map(item=><Link key={item.href} href={item.href} onClick={()=>setOpen(false)} className={activeHref===item.href?'active':''} aria-current={activeHref===item.href?'page':undefined}>{item.label}</Link>)}</nav><div className="header-actions"><Link href="/cart" className="cart-link" aria-label={`Panier, ${count} article${count>1?'s':''}`}><svg viewBox="0 0 24 24" aria-hidden><path d="M5 8h14l-1 12H6L5 8Zm3 0a4 4 0 0 1 8 0"/></svg><span>Panier</span>{count>0?<b>{count}</b>:null}</Link><button className="mobile-menu" onClick={()=>setOpen(value=>!value)} aria-expanded={open} aria-controls="public-navigation" aria-label={open?'Fermer le menu':'Ouvrir le menu'}><i/><i/></button></div></div></header><button className={open?'nav-scrim open':'nav-scrim'} onClick={()=>setOpen(false)} aria-label="Fermer le menu" tabIndex={open?0:-1}/></>}

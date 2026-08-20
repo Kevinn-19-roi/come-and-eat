@@ -1,0 +1,2 @@
+'use client';
+export default function ErrorPage({reset}:{reset:()=>void}){return <div className="store-container"><div className="empty-state"><span>!</span><h1>Une petite erreur s’est glissée en cuisine</h1><p>Veuillez réessayer dans un instant.</p><button className="btn btn-orange" onClick={reset}>Réessayer</button></div></div>}

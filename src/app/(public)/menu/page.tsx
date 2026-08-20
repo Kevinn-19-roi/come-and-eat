@@ -1,3 +1,5 @@
-import type { Metadata } from 'next';import { MenuCatalog } from '@/components/menu-catalog';import { localCatalogRepository } from '@/services/repositories';
-export const metadata:Metadata={title:'Le menu'};
-export default async function MenuPage(){const [products,categories]=await Promise.all([localCatalogRepository.getProducts(),localCatalogRepository.getCategories()]);return <><section className="page-hero"><div className="container"><p className="eyebrow">Bon appétit</p><h1 className="page-title">Notre menu</h1><p className="lead">Choisissez votre envie du moment. Chaque plat est préparé à la commande.</p></div></section><section className="section" style={{paddingTop:0}}><div className="container"><MenuCatalog products={products} categories={categories}/></div></section></>}
+import type { Metadata } from 'next';
+import { MenuCatalog } from '@/components/menu-catalog';
+import { localCatalogRepository } from '@/services/repositories';
+export const metadata:Metadata={title:'Menu & Carte'};
+export default async function MenuPage(){const [products,categories]=await Promise.all([localCatalogRepository.getProducts(),localCatalogRepository.getCategories()]);return <><section className="menu-hero"><div className="store-container"><p className="section-kicker">🍽 Préparé minute, rien que pour vous</p><h1>Menu & carte gourmande</h1><p>Explorez nos recettes maison, personnalisez votre plat et commandez en quelques clics.</p><div className="menu-facts"><span>♧ Produits frais</span><span>◷ Prêt en 10–25 min</span><span>♢ Paiement flexible</span></div></div></section><section className="section menu-section"><div className="store-container"><MenuCatalog products={products} categories={categories}/></div></section></>}

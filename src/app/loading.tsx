@@ -1,1 +1,1 @@
-export default function Loading(){return <div className="container" style={{padding:'80px 0'}}><div className="card">Chargement en cours…</div></div>}
+export default function Loading(){return <div className="store-container skeleton-page" aria-label="Chargement en cours"><div className="skeleton skeleton-title"/><div className="skeleton-grid">{[1,2,3,4].map(i=><div className="skeleton-card" key={i}><div className="skeleton skeleton-image"/><div className="skeleton skeleton-line"/><div className="skeleton skeleton-line short"/></div>)}</div></div>}

@@ -1,0 +1,11 @@
+import {AdminHeader} from '@/components/admin-ui';
+import {changeUserRole} from '@/app/admin/actions';
+import {requireAdmin} from '@/lib/auth/admin';
+import {getAdminUsers} from '@/services/admin-marketplace';
+const roles:Record<string,string>={customer:'Client',vendor:'Vendeur',admin:'Administrateur',super_admin:'Super administrateur'};
+type RestaurantMembership={name:string;member_role:string};
+type UserRow={id:string;display_name:string|null;email:string;phone:string|null;role:string;created_at:string;restaurants:unknown};
+export default async function Page({searchParams}:{searchParams:Promise<{q?:string}>}){
+ const admin=await requireAdmin();const{q=''}=await searchParams;const users=(await getAdminUsers(q)) as UserRow[];
+ return <><AdminHeader eyebrow="Utilisateurs et accès" title="Utilisateurs"/><form className="admin-filters"><input name="q" defaultValue={q} placeholder="Nom, email ou téléphone"/><button className="btn btn-dark">Rechercher</button></form><section className="admin-card"><div className="table-wrap"><table><thead><tr><th>Utilisateur</th><th>Contact</th><th>Rôle</th><th>Restaurants</th><th>Inscription</th><th></th></tr></thead><tbody>{users.map(user=>{const memberships=Array.isArray(user.restaurants)?user.restaurants as RestaurantMembership[]:[];return <tr key={user.id}><td><strong>{user.display_name||'Sans nom'}</strong></td><td>{user.email}<small>{user.phone||''}</small></td><td>{roles[user.role]}</td><td>{memberships.length?memberships.map(r=><small key={`${r.name}-${r.member_role}`}>{r.name} · {r.member_role==='owner'?'Propriétaire':r.member_role==='manager'?'Responsable':'Équipe'}</small>):'Aucun'}</td><td>{new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium'}).format(new Date(user.created_at))}</td><td>{admin.role==='super_admin'?<form action={changeUserRole} className="table-actions"><input type="hidden" name="user_id" value={user.id}/><select name="role" defaultValue={user.role} aria-label={`Rôle de ${user.display_name||user.email}`}><option value="customer">Client</option><option value="vendor">Vendeur</option><option value="admin">Administrateur</option><option value="super_admin">Super administrateur</option></select><button>Enregistrer</button></form>:<span className="muted">Lecture seule</span>}</td></tr>})}</tbody></table></div></section></>
+}

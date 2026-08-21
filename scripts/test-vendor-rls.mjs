@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import nextEnv from '@next/env';
 import {createClient} from '@supabase/supabase-js';
 nextEnv.loadEnvConfig(process.cwd());
-const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
+const url=process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/rest\/v1\/?$/,'');
 const publicKey=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
 assert.ok(url&&publicKey&&serviceKey,'Variables Supabase manquantes pour le test RLS.');
@@ -25,7 +25,7 @@ try{
   const{data:updatedA,error:updateAError}=await clientA.from('products').update({base_price:1300}).eq('id',productA.id).select('id');assert.ifError(updateAError);assert.equal(updatedA?.length,1,'Owner A doit modifier son produit.');
   const{data:updatedB}=await clientA.from('products').update({base_price:9999}).eq('id',productB.id).select('id');assert.equal(updatedB?.length,0,'Owner A ne doit pas modifier le produit B.');
   const{data:staffUpdate}=await clientStaff.from('products').update({base_price:9999}).eq('id',productA.id).select('id');assert.equal(staffUpdate?.length,0,'Staff ne doit pas modifier les produits.');
-  const{data:ordersA}=await clientA.from('restaurant_orders').select('id');assert.deepEqual(ordersA?.map(row=>row.id),[roA.id],'Owner A ne doit voir que sa sous-commande.');
+  const{data:ordersA,error:ordersAError}=await clientA.from('restaurant_orders').select('id');assert.ifError(ordersAError);assert.deepEqual(ordersA?.map(row=>row.id),[roA.id],'Owner A ne doit voir que sa sous-commande.');
   const{data:itemsA}=await clientA.from('order_items').select('restaurant_order_id');assert.deepEqual(itemsA?.map(row=>row.restaurant_order_id),[roA.id],'Owner A ne doit voir que ses articles.');
   const{data:ordersB}=await clientB.from('restaurant_orders').select('id');assert.deepEqual(ordersB?.map(row=>row.id),[roB.id],'Owner B ne doit voir que sa sous-commande.');
   const{error:staffStatusError}=await clientStaff.rpc('vendor_update_restaurant_order_status',{target:roA.id,new_status:'confirmed'});assert.ifError(staffStatusError);

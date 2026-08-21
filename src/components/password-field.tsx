@@ -1,0 +1,3 @@
+'use client';
+import {useState} from 'react';
+export function PasswordField({name,label='Mot de passe',autoComplete='current-password',minLength,required=true}:{name:string;label?:string;autoComplete?:string;minLength?:number;required?:boolean}){const[visible,setVisible]=useState(false);return <label className="field password-label"><span>{label}</span><span className="password-input"><input name={name} type={visible?'text':'password'} autoComplete={autoComplete} minLength={minLength} required={required}/><button type="button" onClick={()=>setVisible(value=>!value)} aria-label={visible?`Masquer ${label.toLowerCase()}`:`Afficher ${label.toLowerCase()}`} aria-pressed={visible}><span aria-hidden="true">{visible?'◉':'◎'}</span></button></span></label>}

@@ -4,6 +4,8 @@ const generatedFieldsFix=await readFile(new URL('../supabase/migrations/20260820
 const seed=await readFile(new URL('../supabase/migrations/202608200003_seed_marketplace.sql',import.meta.url),'utf8');
 const vendorSecurity=await readFile(new URL('../supabase/migrations/202608200004_vendor_panel_security.sql',import.meta.url),'utf8');
 const publicAuthOfficialStore=await readFile(new URL('../supabase/migrations/202608200005_public_auth_official_store.sql',import.meta.url),'utf8');
+const sellerReview=await readFile(new URL('../supabase/migrations/202608200006_seller_application_review.sql',import.meta.url),'utf8');
+const sellerReviewHardening=await readFile(new URL('../supabase/migrations/202608210001_harden_seller_application_review.sql',import.meta.url),'utf8');
 const requiredTables=['profiles','restaurants','restaurant_members','seller_applications','categories','cuisine_types','restaurant_cuisine_types','restaurant_hours','media','products','product_option_groups','product_options','product_option_group_links','delivery_zones','orders','restaurant_orders','order_items','favorites','promotions','site_settings','homepage_sections'];
 for(const table of requiredTables)assert.match(schema,new RegExp(`create table public\\.${table}\\b`),`Table absente: ${table}`);
 for(const table of requiredTables)assert.match(schema,new RegExp(`alter table public\\.${table} enable row level security`),`RLS absente: ${table}`);
@@ -33,6 +35,13 @@ assert.ok(publicAuthOfficialStore.includes('is_official boolean not null default
 assert.ok(publicAuthOfficialStore.includes('restaurants_one_official_idx'),'Unicité de la boutique officielle absente');
 assert.ok(publicAuthOfficialStore.includes('create or replace function public.can_manage_restaurant'),'Protection de la boutique officielle absente');
 assert.ok(publicAuthOfficialStore.includes('and not r.is_official'),'Un membre vendeur ne doit pas administrer la boutique officielle');
+for(const table of ['seller_application_documents','seller_application_events'])assert.ok(sellerReview.includes(`create table if not exists public.${table}`),`Table de vérification absente: ${table}`);
+assert.ok(sellerReview.includes("values ('seller-documents','seller-documents',false"),'Le bucket de justificatifs doit être privé.');
+assert.ok(sellerReview.includes("createSignedUrl")===false,'La migration ne doit pas générer de lien permanent.');
+for(const policy of ['seller_documents_read','seller_documents_create','seller_document_objects_read'])assert.ok(sellerReview.includes(`policy ${policy}`),`Politique document absente: ${policy}`);
+assert.ok(sellerReviewHardening.includes("storage_path like auth.uid()::text || '/%'"),'Le chemin privé doit appartenir au candidat.');
+assert.ok(sellerReviewHardening.includes('on conflict(restaurant_id,user_id) do update'),'L’acceptation doit être idempotente pour les membres.');
+assert.ok(sellerReviewHardening.includes('application.restaurant_id'),'L’acceptation doit réutiliser un restaurant existant.');
 const publicHeader=await readFile(new URL('../src/components/public-header.tsx',import.meta.url),'utf8');
 const publicNavigation=await readFile(new URL('../src/lib/public-navigation.ts',import.meta.url),'utf8');
 for(const label of ['Connexion','Inscription','Mon compte','Devenir vendeur','Panel admin','Mon restaurant'])assert.ok(publicNavigation.includes(label),`Navigation publique absente: ${label}`);

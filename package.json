@@ -11,7 +11,8 @@
     "test": "node scripts/test-marketplace.mjs",
     "test:vendor-rls": "node scripts/test-vendor-rls.mjs",
     "test:official-store": "node scripts/test-official-store.mjs",
-    "test:seller-application": "node scripts/test-seller-application-review.mjs"
+    "test:seller-application": "node scripts/test-seller-application-review.mjs",
+    "test:admin": "node scripts/test-admin-management.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

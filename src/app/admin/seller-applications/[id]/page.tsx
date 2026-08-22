@@ -1,4 +1,295 @@
-import Image from 'next/image';import Link from 'next/link';import {notFound} from 'next/navigation';import {AdminHeader} from '@/components/admin-ui';import {requireAdmin} from '@/lib/auth/admin';import {applicationStatusLabels,getAdminSellerApplication} from '@/services/seller-applications-admin';import {reviewSellerApplication} from '../actions';
-const identityLabels:Record<string,string>={cni:'CNI',passport:'Passeport',identity_certificate:'Attestation d’identité',drivers_license:'Permis de conduire',other:'Autre document officiel'};const documentLabels:Record<string,string>={identity_front:'Pièce d’identité — recto',identity_back:'Pièce d’identité — verso',business_registry:'RCCM / registre de commerce',business_registration:'Immatriculation de l’entreprise',other_business:'Autre justificatif professionnel'};
-function Detail({label,value}:{label:string;value:unknown}){return <div><dt>{label}</dt><dd>{value?String(value):'Non renseigné'}</dd></div>}
-export default async function SellerApplicationDetail({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{saved?:string}>}){await requireAdmin();const{id}=await params;const{saved}=await searchParams;const result=await getAdminSellerApplication(id);if(!result)notFound();const{application,documents,events,publicPhotos}=result;const canReview=['submitted','under_review','changes_requested'].includes(application.status);return <><AdminHeader eyebrow="Demande vendeur" title={application.restaurant_name} action={<Link className="btn btn-outline" href="/admin/seller-applications">← Retour</Link>}/>{saved?<div className="form-feedback success" role="status">Décision enregistrée.</div>:null}<div className="application-admin-grid"><div className="application-admin-main"><section className="admin-card"><div className="card-head"><h2>Responsable</h2><span className={`application-status ${application.status}`}>{applicationStatusLabels[application.status]}</span></div><dl className="detail-list"><Detail label="Nom et prénoms" value={application.applicant_name||application.profile?.display_name}/><Detail label="Téléphone" value={application.phone}/><Detail label="WhatsApp" value={application.whatsapp}/><Detail label="Email" value={application.email}/><Detail label="Adresse" value={application.applicant_address}/><Detail label="Commune" value={application.applicant_commune}/></dl></section><section className="admin-card"><h2>Identité</h2><dl className="detail-list"><Detail label="Type de pièce" value={identityLabels[application.identity_type]}/><Detail label="Numéro" value={application.identity_number}/></dl><div className="private-documents">{documents.filter(item=>item.kind.startsWith('identity_')).map(item=><a key={item.id} href={item.signedUrl??'#'} target="_blank" rel="noopener noreferrer" aria-disabled={!item.signedUrl}>{documentLabels[item.kind]} <small>Lien privé valable 5 minutes</small></a>)}</div></section><section className="admin-card"><h2>Restaurant</h2><dl className="detail-list"><Detail label="Nom" value={application.restaurant_name}/><Detail label="Description" value={application.description}/><Detail label="Adresse" value={application.address}/><Detail label="Commune" value={application.commune}/><Detail label="Localisation" value={application.maps_url}/><Detail label="Téléphone" value={application.phone}/><Detail label="Email" value={application.email}/><Detail label="Cuisines" value={(application.cuisine_notes??[]).join(', ')}/><Detail label="Livraison" value={application.delivery_available?'Oui':'Non'}/><Detail label="Retrait" value={application.pickup_available?'Oui':'Non'}/></dl></section><section className="admin-card"><h2>Photos</h2><div className="application-photo-review">{result.logoUrl?<Image src={result.logoUrl} width={240} height={160} alt="Logo proposé"/>:null}{result.coverUrl?<Image src={result.coverUrl} width={240} height={160} alt="Couverture proposée"/>:null}{publicPhotos.map(photo=><Image key={photo.path} src={photo.url} width={240} height={160} alt="Établissement du candidat"/>)}</div>{!result.logoUrl&&!result.coverUrl&&!publicPhotos.length?<p className="muted">Aucune photo fournie.</p>:null}</section><section className="admin-card"><h2>Documents professionnels</h2><div className="private-documents">{documents.filter(item=>!item.kind.startsWith('identity_')).map(item=><a key={item.id} href={item.signedUrl??'#'} target="_blank" rel="noopener noreferrer">{item.label||documentLabels[item.kind]} <small>Lien privé valable 5 minutes</small></a>)}</div>{!documents.some(item=>!item.kind.startsWith('identity_'))?<p className="muted">Aucun document professionnel fourni.</p>:null}</section><section className="admin-card"><h2>Historique</h2><div className="application-history">{events.map(event=><article key={event.id}><strong>{applicationStatusLabels[event.status]}</strong><span>{new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium',timeStyle:'short'}).format(new Date(event.created_at))}</span>{event.note?<p>{event.note}</p>:null}</article>)}</div></section></div><aside>{canReview?<section className="admin-card review-actions"><h2>Décision</h2><form action={reviewSellerApplication}><input type="hidden" name="application_id" value={id}/><input type="hidden" name="decision" value="approved"/><button className="btn btn-dark">Accepter</button></form><details><summary>Demander des modifications</summary><form action={reviewSellerApplication}><input type="hidden" name="application_id" value={id}/><input type="hidden" name="decision" value="changes_requested"/><label className="field"><span>Indiquez au vendeur ce qu’il doit corriger</span><textarea name="note" required rows={4}/></label><button className="btn btn-outline">Envoyer la demande</button></form></details><details><summary>Refuser</summary><form action={reviewSellerApplication}><input type="hidden" name="application_id" value={id}/><input type="hidden" name="decision" value="rejected"/><label className="field"><span>Raison du refus</span><textarea name="note" required rows={4}/></label><button className="btn btn-danger">Confirmer le refus</button></form></details></section>:<section className="admin-card"><h2>Décision prise</h2><p>{application.admin_notes||'Aucune note.'}</p></section>}</aside></div></>}
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { AdminHeader } from "@/components/admin-ui";
+import { requireAdmin } from "@/lib/auth/admin";
+import {
+  applicationStatusLabels,
+  getAdminSellerApplication,
+} from "@/services/seller-applications-admin";
+import { reviewSellerApplication } from "../actions";
+const identityLabels: Record<string, string> = {
+  cni: "CNI",
+  passport: "Passeport",
+  identity_certificate: "Attestation d’identité",
+  drivers_license: "Permis de conduire",
+  other: "Autre document officiel",
+};
+const documentLabels: Record<string, string> = {
+  identity_front: "Pièce d’identité — recto",
+  identity_back: "Pièce d’identité — verso",
+  business_registry: "RCCM / registre de commerce",
+  business_registration: "Immatriculation de l’entreprise",
+  other_business: "Autre justificatif professionnel",
+};
+function Detail({ label, value }: { label: string; value: unknown }) {
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd>{value ? String(value) : "Non renseigné"}</dd>
+    </div>
+  );
+}
+function hasIdentityKind(item: { kind?: unknown }) {
+  return typeof item.kind === "string" && item.kind.startsWith("identity_");
+}
+function safeDate(value: unknown) {
+  if (typeof value !== "string") return "Date indisponible";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date indisponible";
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+export default async function SellerApplicationDetail({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ saved?: string }>;
+}) {
+  await requireAdmin();
+  const { id } = await params;
+  const { saved } = await searchParams;
+  const result = await getAdminSellerApplication(id);
+  if (!result) notFound();
+  const { application, documents, events, publicPhotos } = result;
+  const profile = Array.isArray(application.profile)
+    ? application.profile[0]
+    : application.profile;
+  const cuisines = Array.isArray(application.cuisine_notes)
+    ? application.cuisine_notes.filter(
+        (item: unknown): item is string => typeof item === "string",
+      )
+    : [];
+  const identityDocuments = documents.filter(hasIdentityKind);
+  const professionalDocuments = documents.filter(
+    (item) => !hasIdentityKind(item),
+  );
+  const canReview = ["submitted", "under_review", "changes_requested"].includes(
+    application.status,
+  );
+  return (
+    <>
+      <AdminHeader
+        eyebrow="Demande vendeur"
+        title={application.restaurant_name}
+        action={
+          <Link className="btn btn-outline" href="/admin/seller-applications">
+            ← Retour
+          </Link>
+        }
+      />
+      {saved ? (
+        <div className="form-feedback success" role="status">
+          Décision enregistrée.
+        </div>
+      ) : null}
+      <div className="application-admin-grid">
+        <div className="application-admin-main">
+          <section className="admin-card">
+            <div className="card-head">
+              <h2>Responsable</h2>
+              <span className={`application-status ${application.status}`}>
+                {applicationStatusLabels[application.status] ?? "À vérifier"}
+              </span>
+            </div>
+            <dl className="detail-list">
+              <Detail
+                label="Nom et prénoms"
+                value={application.applicant_name || profile?.display_name}
+              />
+              <Detail label="Téléphone" value={application.phone} />
+              <Detail label="WhatsApp" value={application.whatsapp} />
+              <Detail label="Email" value={application.email} />
+              <Detail label="Adresse" value={application.applicant_address} />
+              <Detail label="Commune" value={application.applicant_commune} />
+            </dl>
+          </section>
+          <section className="admin-card">
+            <h2>Identité</h2>
+            <dl className="detail-list">
+              <Detail
+                label="Type de pièce"
+                value={identityLabels[application.identity_type] ?? null}
+              />
+              <Detail label="Numéro" value={application.identity_number} />
+            </dl>
+            <div className="private-documents">
+              {identityDocuments.map((item) =>
+                item.signedUrl ? (
+                  <a
+                    key={item.id}
+                    href={item.signedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {documentLabels[item.kind] ?? "Document d’identité"}{" "}
+                    <small>Lien privé valable 5 minutes</small>
+                  </a>
+                ) : (
+                  <span key={item.id} className="muted">
+                    {documentLabels[item.kind] ?? "Document d’identité"} —
+                    fichier indisponible
+                  </span>
+                ),
+              )}
+            </div>
+            {!identityDocuments.length ? (
+              <p className="muted">Aucune pièce d’identité fournie.</p>
+            ) : null}
+          </section>
+          <section className="admin-card">
+            <h2>Restaurant</h2>
+            <dl className="detail-list">
+              <Detail label="Nom" value={application.restaurant_name} />
+              <Detail label="Description" value={application.description} />
+              <Detail label="Adresse" value={application.address} />
+              <Detail label="Commune" value={application.commune} />
+              <Detail label="Localisation" value={application.maps_url} />
+              <Detail label="Téléphone" value={application.phone} />
+              <Detail label="Email" value={application.email} />
+              <Detail label="Cuisines" value={cuisines.join(", ")} />
+              <Detail
+                label="Livraison"
+                value={application.delivery_available ? "Oui" : "Non"}
+              />
+              <Detail
+                label="Retrait"
+                value={application.pickup_available ? "Oui" : "Non"}
+              />
+            </dl>
+          </section>
+          <section className="admin-card">
+            <h2>Photos</h2>
+            <div className="application-photo-review">
+              {result.logoUrl ? (
+                <Image
+                  src={result.logoUrl}
+                  width={240}
+                  height={160}
+                  alt="Logo proposé"
+                />
+              ) : null}
+              {result.coverUrl ? (
+                <Image
+                  src={result.coverUrl}
+                  width={240}
+                  height={160}
+                  alt="Couverture proposée"
+                />
+              ) : null}
+              {publicPhotos.map((photo: { path: string; url: string }) => (
+                <Image
+                  key={photo.path}
+                  src={photo.url}
+                  width={240}
+                  height={160}
+                  alt="Établissement du candidat"
+                />
+              ))}
+            </div>
+            {!result.logoUrl && !result.coverUrl && !publicPhotos.length ? (
+              <p className="muted">Aucune photo fournie.</p>
+            ) : null}
+          </section>
+          <section className="admin-card">
+            <h2>Documents professionnels</h2>
+            <div className="private-documents">
+              {professionalDocuments.map((item) =>
+                item.signedUrl ? (
+                  <a
+                    key={item.id}
+                    href={item.signedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {item.label ||
+                      documentLabels[item.kind] ||
+                      "Document professionnel"}{" "}
+                    <small>Lien privé valable 5 minutes</small>
+                  </a>
+                ) : (
+                  <span key={item.id} className="muted">
+                    {item.label ||
+                      documentLabels[item.kind] ||
+                      "Document professionnel"}{" "}
+                    — fichier indisponible
+                  </span>
+                ),
+              )}
+            </div>
+            {!professionalDocuments.length ? (
+              <p className="muted">Aucun document professionnel fourni.</p>
+            ) : null}
+          </section>
+          <section className="admin-card">
+            <h2>Historique</h2>
+            <div className="application-history">
+              {events.map((event) => (
+                <article key={event.id}>
+                  <strong>
+                    {applicationStatusLabels[event.status] ?? "Mise à jour"}
+                  </strong>
+                  <span>{safeDate(event.created_at)}</span>
+                  {event.note ? <p>{event.note}</p> : null}
+                </article>
+              ))}
+              {!events.length ? (
+                <p className="muted">Aucun historique disponible.</p>
+              ) : null}
+            </div>
+          </section>
+        </div>
+        <aside>
+          {canReview ? (
+            <section className="admin-card review-actions">
+              <h2>Décision</h2>
+              <form action={reviewSellerApplication}>
+                <input type="hidden" name="application_id" value={id} />
+                <input type="hidden" name="decision" value="approved" />
+                <button className="btn btn-dark">Accepter</button>
+              </form>
+              <details>
+                <summary>Demander des modifications</summary>
+                <form action={reviewSellerApplication}>
+                  <input type="hidden" name="application_id" value={id} />
+                  <input
+                    type="hidden"
+                    name="decision"
+                    value="changes_requested"
+                  />
+                  <label className="field">
+                    <span>Indiquez au vendeur ce qu’il doit corriger</span>
+                    <textarea name="note" required rows={4} />
+                  </label>
+                  <button className="btn btn-outline">
+                    Envoyer la demande
+                  </button>
+                </form>
+              </details>
+              <details>
+                <summary>Refuser</summary>
+                <form action={reviewSellerApplication}>
+                  <input type="hidden" name="application_id" value={id} />
+                  <input type="hidden" name="decision" value="rejected" />
+                  <label className="field">
+                    <span>Raison du refus</span>
+                    <textarea name="note" required rows={4} />
+                  </label>
+                  <button className="btn btn-danger">Confirmer le refus</button>
+                </form>
+              </details>
+            </section>
+          ) : (
+            <section className="admin-card">
+              <h2>Décision prise</h2>
+              <p>{application.admin_notes || "Aucune note."}</p>
+            </section>
+          )}
+        </aside>
+      </div>
+    </>
+  );
+}

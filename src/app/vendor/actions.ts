@@ -1,39 +1,513 @@
-'use server';
-import {cookies} from 'next/headers';import {revalidatePath} from 'next/cache';import {redirect} from 'next/navigation';
-import {createClient} from '@/lib/supabase/server';import {getVendorContext,requireVendor,requireVendorManager} from '@/lib/auth/vendor';
-export type VendorActionState={ok?:boolean;message?:string;error?:string;applicationId?:string};
-const value=(form:FormData,name:string)=>String(form.get(name)??'').trim();const checked=(form:FormData,name:string)=>form.get(name)==='on';const amount=(form:FormData,name:string)=>Math.max(0,Number(value(form,name).replace(/\s/g,''))||0);
-function safeError(event:string,error:{code?:string;message?:string}|null){if(error)console.error('[vendor-action]',event,{code:error.code})}
-
-export async function vendorLogin(_state:VendorActionState,form:FormData):Promise<VendorActionState>{const db=await createClient();const{error}=await db.auth.signInWithPassword({email:value(form,'email'),password:value(form,'password')});if(error)return{error:error.code==='invalid_credentials'?'Email ou mot de passe incorrect.':'Connexion indisponible pour le moment.'};redirect('/vendor')}
-export async function vendorLogout(){const db=await createClient();await db.auth.signOut();redirect('/vendor/login')}
-export async function chooseRestaurant(form:FormData){const context=await getVendorContext();const id=value(form,'restaurant');if(!context.restaurants.some(item=>item.id===id))redirect('/vendor?error=permissions');(await cookies()).set('ce_vendor_restaurant',id,{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',path:'/vendor',maxAge:60*60*24*180});redirect('/vendor')}
-
-export async function saveSellerApplication(_state:VendorActionState,form:FormData):Promise<VendorActionState>{
- const context=await getVendorContext();if(context.restaurant)return{error:'Votre restaurant est déjà associé à ce compte.'};const db=await createClient();const submit=value(form,'intent')==='submit';
- const payload={user_id:context.userId,applicant_name:value(form,'applicant_name')||null,applicant_address:value(form,'applicant_address')||null,applicant_commune:value(form,'applicant_commune')||null,identity_type:value(form,'identity_type')||null,identity_number:value(form,'identity_number')||null,restaurant_name:value(form,'restaurant_name'),description:value(form,'description'),phone:value(form,'phone'),whatsapp:value(form,'whatsapp')||null,email:value(form,'email')||null,address:value(form,'address')||null,commune:value(form,'commune')||null,latitude:value(form,'latitude')?Number(value(form,'latitude')):null,longitude:value(form,'longitude')?Number(value(form,'longitude')):null,maps_url:value(form,'maps_url')||null,logo_path:value(form,'logo_path')||null,cover_path:value(form,'cover_path')||null,cuisine_notes:form.getAll('cuisine_types').map(String),delivery_available:checked(form,'delivery_available'),pickup_available:checked(form,'pickup_available'),status:submit?'submitted':'draft',submitted_at:submit?new Date().toISOString():null,admin_notes:null};
- if(!payload.restaurant_name||!payload.phone)return{error:'Indiquez au minimum le nom du restaurant et le téléphone.'};
- if(submit&&(!payload.applicant_name||!payload.applicant_address||!payload.applicant_commune||!payload.identity_type||!payload.email))return{error:'Complétez votre identité avant l’envoi.'};
- const{data:existing}=await db.from('seller_applications').select('id,status,establishment_photo_paths').eq('user_id',context.userId).in('status',['draft','changes_requested']).order('created_at',{ascending:false}).limit(1).maybeSingle();
- const saved=existing?await db.from('seller_applications').update(payload).eq('id',existing.id).select('id,establishment_photo_paths').single():await db.from('seller_applications').insert(payload).select('id,establishment_photo_paths').single();
- if(saved.error||!saved.data){safeError('application_save_failed',saved.error);return{error:'La demande n’a pas pu être enregistrée.'}}
- const applicationId=saved.data.id;const{count:identityCount}=await db.from('seller_application_documents').select('*',{count:'exact',head:true}).eq('application_id',applicationId).eq('kind','identity_front');const photoPaths=saved.data.establishment_photo_paths??[];
- if(submit&&(!identityCount||photoPaths.length===0)){await db.from('seller_applications').update({status:'draft',submitted_at:null}).eq('id',applicationId);return{error:'Ajoutez le recto de votre pièce d’identité et au moins une photo de votre établissement.',applicationId}}
- if(submit)await db.from('seller_application_events').insert({application_id:applicationId,actor_user_id:context.userId,status:'submitted',note:existing?.status==='changes_requested'?'Demande corrigée et renvoyée.':'Demande envoyée.'});
- revalidatePath('/vendor/application');revalidatePath('/admin/seller-applications');return{ok:true,message:submit?'Votre demande a bien été envoyée.':'Brouillon enregistré. Vous pouvez maintenant ajouter vos fichiers.',applicationId}
+"use server";
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import {
+  getVendorContext,
+  requireVendor,
+  requireVendorManager,
+} from "@/lib/auth/vendor";
+export type VendorActionState = {
+  ok?: boolean;
+  message?: string;
+  error?: string;
+  applicationId?: string;
+};
+const value = (form: FormData, name: string) =>
+  String(form.get(name) ?? "").trim();
+const checked = (form: FormData, name: string) => form.get(name) === "on";
+const amount = (form: FormData, name: string) =>
+  Math.max(0, Number(value(form, name).replace(/\s/g, "")) || 0);
+function safeError(
+  event: string,
+  error: { code?: string; message?: string } | null,
+) {
+  if (error) console.error("[vendor-action]", event, { code: error.code });
 }
 
-export async function updateRestaurant(_state:VendorActionState,form:FormData):Promise<VendorActionState>{const{restaurant}=await requireVendorManager();const db=await createClient();const payload={name:value(form,'name'),description:value(form,'description'),phone:value(form,'phone')||null,whatsapp:value(form,'whatsapp')||null,email:value(form,'email')||null,address:value(form,'address')||null,commune:value(form,'commune')||null,latitude:value(form,'latitude')?Number(value(form,'latitude')):null,longitude:value(form,'longitude')?Number(value(form,'longitude')):null,maps_url:value(form,'maps_url')||null,logo_path:value(form,'logo_path')||null,cover_path:value(form,'cover_path')||null,average_prep_minutes:Number(value(form,'average_prep_minutes'))||25,delivery_available:checked(form,'delivery_available'),pickup_available:checked(form,'pickup_available')};const{error}=await db.from('restaurants').update(payload).eq('id',restaurant!.id);if(error){safeError('restaurant_update_failed',error);return{error:'Les modifications n’ont pas pu être enregistrées.'}}const cuisineIds=form.getAll('cuisine_ids').map(String);await db.from('restaurant_cuisine_types').delete().eq('restaurant_id',restaurant!.id);if(cuisineIds.length){const result=await db.from('restaurant_cuisine_types').insert(cuisineIds.map(id=>({restaurant_id:restaurant!.id,cuisine_type_id:id})));if(result.error)return{error:'Restaurant enregistré, mais les types de cuisine n’ont pas été mis à jour.'}}revalidatePath('/vendor/restaurant');return{ok:true,message:'Modification enregistrée.'}}
-export async function toggleRestaurantPause(){const{restaurant}=await requireVendorManager();const db=await createClient();const next=restaurant!.operatingStatus==='paused'?'open':'paused';const{error}=await db.from('restaurants').update({operating_status:next}).eq('id',restaurant!.id);if(error)throw error;revalidatePath('/vendor');revalidatePath('/vendor/restaurant')}
+export async function vendorLogin(
+  _state: VendorActionState,
+  form: FormData,
+): Promise<VendorActionState> {
+  const db = await createClient();
+  const { error } = await db.auth.signInWithPassword({
+    email: value(form, "email"),
+    password: value(form, "password"),
+  });
+  if (error)
+    return {
+      error:
+        error.code === "invalid_credentials"
+          ? "Email ou mot de passe incorrect."
+          : "Connexion indisponible pour le moment.",
+    };
+  redirect("/vendor");
+}
+export async function vendorLogout() {
+  const db = await createClient();
+  await db.auth.signOut();
+  redirect("/vendor/login");
+}
+export async function chooseRestaurant(form: FormData) {
+  const context = await getVendorContext();
+  const id = value(form, "restaurant");
+  if (!context.restaurants.some((item) => item.id === id))
+    redirect("/vendor?error=permissions");
+  (await cookies()).set("ce_vendor_restaurant", id, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/vendor",
+    maxAge: 60 * 60 * 24 * 180,
+  });
+  redirect("/vendor");
+}
 
-function readOptions(form:FormData,type:'accompaniment'|'drink'|'supplement'){const names=form.getAll(`${type}_name`).map(String);const prices=form.getAll(`${type}_price`).map(String);return names.map((name,index)=>({name:name.trim(),price:Math.max(0,Number(prices[index])||0)})).filter(item=>item.name)}
-async function saveOptionGroups(db:Awaited<ReturnType<typeof createClient>>,restaurantId:string,productId:string,form:FormData){for(const type of ['accompaniment','drink','supplement'] as const){const options=readOptions(form,type);if(!options.length)continue;const defaults=type==='accompaniment'?{name:'Accompagnements',required:true,min:1,max:1}:type==='drink'?{name:'Boissons',required:false,min:0,max:1}:{name:'Suppléments',required:false,min:0,max:null};const{data:group,error}=await db.from('product_option_groups').insert({restaurant_id:restaurantId,name:defaults.name,type,is_required:value(form,`${type}_required`)?value(form,`${type}_required`)==='yes':defaults.required,min_choices:value(form,`${type}_required`)==='yes'?1:defaults.min,max_choices:value(form,`${type}_multiple`)==='yes'?null:defaults.max}).select('id').single();if(error)throw error;const inserted=await db.from('product_options').insert(options.map((option,index)=>({group_id:group.id,name:option.name,price_delta:option.price,sort_order:index})));if(inserted.error)throw inserted.error;const linked=await db.from('product_option_group_links').insert({product_id:productId,group_id:group.id});if(linked.error)throw linked.error}}
-export async function createProduct(_state:VendorActionState,form:FormData):Promise<VendorActionState>{const{restaurant}=await requireVendorManager();const db=await createClient();const name=value(form,'name');if(!name||!value(form,'category_id'))return{error:'Ajoutez un nom et choisissez une catégorie.'};const{data,error}=await db.from('products').insert({restaurant_id:restaurant!.id,category_id:value(form,'category_id'),name,description:value(form,'description'),base_price:amount(form,'base_price'),media_id:value(form,'media_id')||null,availability:checked(form,'availability'),slug:'',sku:''}).select('id').single();if(error){safeError('product_create_failed',error);return{error:'Le produit n’a pas pu être ajouté.'}}try{await saveOptionGroups(db,restaurant!.id,data.id,form)}catch(error){safeError('options_create_failed',error as {code?:string});return{error:'Produit ajouté, mais les options n’ont pas toutes été enregistrées.'}}revalidatePath('/vendor/products');redirect('/vendor/products?success=product-created')}
-export async function updateProduct(productId:string,_state:VendorActionState,form:FormData):Promise<VendorActionState>{const context=await requireVendorManager();const db=await createClient();const{error}=await db.from('products').update({category_id:value(form,'category_id'),name:value(form,'name'),description:value(form,'description'),base_price:amount(form,'base_price'),media_id:value(form,'media_id')||null,availability:checked(form,'availability')}).eq('id',productId);if(error)return{error:'Le produit n’a pas pu être modifié.'};const{data:links}=await db.from('product_option_group_links').select('group_id').eq('product_id',productId);const groupIds=(links??[]).map(link=>link.group_id);if(groupIds.length){await db.from('product_option_group_links').delete().eq('product_id',productId);await db.from('product_option_groups').delete().in('id',groupIds)}try{await saveOptionGroups(db,context.restaurant!.id,productId,form)}catch(optionError){safeError('options_update_failed',optionError as {code?:string});return{error:'Produit modifié, mais les options n’ont pas toutes été enregistrées.'}}revalidatePath('/vendor/products');return{ok:true,message:'Modification enregistrée.'}}
-export async function setProductAvailability(form:FormData){await requireVendorManager();const db=await createClient();const{error}=await db.from('products').update({availability:value(form,'availability')==='true'}).eq('id',value(form,'product_id')).eq('hidden_by_admin',false);if(error)throw error;revalidatePath('/vendor/products')}
-export async function archiveProduct(form:FormData){await requireVendorManager();const db=await createClient();const{error}=await db.from('products').update({is_archived:true,availability:false}).eq('id',value(form,'product_id'));if(error)throw error;revalidatePath('/vendor/products')}
-export async function requestCategory(_state:VendorActionState,form:FormData):Promise<VendorActionState>{const context=await requireVendorManager();const name=value(form,'requested_name');if(name.length<2)return{error:'Indiquez le nom de la catégorie.'};const db=await createClient();const{error}=await db.from('category_requests').insert({user_id:context.userId,restaurant_id:context.restaurant!.id,requested_name:name,note:value(form,'note')||null});if(error)return{error:'La demande n’a pas pu être envoyée.'};return{ok:true,message:'Demande envoyée à Come & Eat.'}}
-export async function updateOrderStatus(form:FormData){await requireVendor();const db=await createClient();const{error}=await db.rpc('vendor_update_restaurant_order_status',{target:value(form,'order_id'),new_status:value(form,'status')});if(error)throw error;revalidatePath('/vendor/orders');revalidatePath(`/vendor/orders/${value(form,'order_id')}`)}
-export async function saveHours(_state:VendorActionState,form:FormData):Promise<VendorActionState>{const{restaurant}=await requireVendorManager();const db=await createClient();const rows=Array.from({length:7},(_,day)=>({restaurant_id:restaurant!.id,day_of_week:day,is_closed:!checked(form,`open_${day}`),opens_at:checked(form,`open_${day}`)?value(form,`opens_${day}`):null,closes_at:checked(form,`open_${day}`)?value(form,`closes_${day}`):null}));const{error}=await db.from('restaurant_hours').upsert(rows,{onConflict:'restaurant_id,day_of_week'});if(error)return{error:'Les horaires n’ont pas pu être enregistrés.'};revalidatePath('/vendor/hours');return{ok:true,message:'Horaires enregistrés.'}}
-export async function createPromotion(_state:VendorActionState,form:FormData):Promise<VendorActionState>{const{restaurant}=await requireVendorManager();const db=await createClient();const productId=value(form,'product_id');const{error}=await db.from('promotions').insert({name:value(form,'name'),scope:productId?'product':'restaurant',discount_type:value(form,'discount_type'),value:amount(form,'value'),restaurant_id:restaurant!.id,product_id:productId||null,starts_at:value(form,'starts_at')||null,ends_at:value(form,'ends_at')||null,is_active:checked(form,'is_active')});if(error)return{error:'La promotion n’a pas pu être créée.'};revalidatePath('/vendor/promotions');return{ok:true,message:'Promotion créée.'}}
-export async function deleteMedia(form:FormData){const context=await requireVendorManager();const db=await createClient();const id=value(form,'media_id');const{data}=await db.from('media').select('path').eq('id',id).eq('owner_user_id',context.userId).maybeSingle();if(!data)return;const removed=await db.storage.from('restaurant-media').remove([data.path]);if(removed.error)throw removed.error;const{error}=await db.from('media').delete().eq('id',id);if(error)throw error;revalidatePath('/vendor/media')}
+export async function saveSellerApplication(
+  _state: VendorActionState,
+  form: FormData,
+): Promise<VendorActionState> {
+  const context = await getVendorContext();
+  if (context.restaurant)
+    return { error: "Votre restaurant est déjà associé à ce compte." };
+  const db = await createClient();
+  const submit = value(form, "intent") === "submit";
+  const payload = {
+    user_id: context.userId,
+    applicant_name: value(form, "applicant_name") || null,
+    applicant_address: value(form, "applicant_address") || null,
+    applicant_commune: value(form, "applicant_commune") || null,
+    identity_type: value(form, "identity_type") || null,
+    identity_number: value(form, "identity_number") || null,
+    restaurant_name: value(form, "restaurant_name"),
+    description: value(form, "description"),
+    phone: value(form, "phone"),
+    whatsapp: value(form, "whatsapp") || null,
+    email: value(form, "email") || null,
+    address: value(form, "address") || null,
+    commune: value(form, "commune") || null,
+    latitude: value(form, "latitude") ? Number(value(form, "latitude")) : null,
+    longitude: value(form, "longitude")
+      ? Number(value(form, "longitude"))
+      : null,
+    maps_url: value(form, "maps_url") || null,
+    logo_path: value(form, "logo_path") || null,
+    cover_path: value(form, "cover_path") || null,
+    cuisine_notes: form.getAll("cuisine_types").map(String),
+    delivery_available: checked(form, "delivery_available"),
+    pickup_available: checked(form, "pickup_available"),
+    status: submit ? "submitted" : "draft",
+    submitted_at: submit ? new Date().toISOString() : null,
+    admin_notes: null,
+  };
+  if (!payload.restaurant_name || !payload.phone)
+    return {
+      error: "Indiquez au minimum le nom du restaurant et le téléphone.",
+    };
+  if (
+    submit &&
+    (!payload.applicant_name ||
+      !payload.applicant_address ||
+      !payload.applicant_commune ||
+      !payload.identity_type ||
+      !payload.email)
+  )
+    return { error: "Complétez votre identité avant l’envoi." };
+  const { data: existing } = await db
+    .from("seller_applications")
+    .select("id,status,establishment_photo_paths")
+    .eq("user_id", context.userId)
+    .in("status", ["draft", "changes_requested"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const saved = existing
+    ? await db
+        .from("seller_applications")
+        .update(payload)
+        .eq("id", existing.id)
+        .select("id,establishment_photo_paths")
+        .single()
+    : await db
+        .from("seller_applications")
+        .insert(payload)
+        .select("id,establishment_photo_paths")
+        .single();
+  if (saved.error || !saved.data) {
+    safeError("application_save_failed", saved.error);
+    return { error: "La demande n’a pas pu être enregistrée." };
+  }
+  const applicationId = saved.data.id;
+  const { count: identityCount } = await db
+    .from("seller_application_documents")
+    .select("*", { count: "exact", head: true })
+    .eq("application_id", applicationId)
+    .eq("kind", "identity_front");
+  const photoPaths = saved.data.establishment_photo_paths ?? [];
+  if (submit && (!identityCount || photoPaths.length === 0)) {
+    await db
+      .from("seller_applications")
+      .update({ status: "draft", submitted_at: null })
+      .eq("id", applicationId);
+    return {
+      error:
+        "Ajoutez le recto de votre pièce d’identité et au moins une photo de votre établissement.",
+      applicationId,
+    };
+  }
+  if (submit)
+    await db
+      .from("seller_application_events")
+      .insert({
+        application_id: applicationId,
+        actor_user_id: context.userId,
+        status: "submitted",
+        note:
+          existing?.status === "changes_requested"
+            ? "Demande corrigée et renvoyée."
+            : "Demande envoyée.",
+      });
+  revalidatePath("/vendor/application");
+  revalidatePath("/admin/seller-applications");
+  return {
+    ok: true,
+    message: submit
+      ? "Votre demande a bien été envoyée."
+      : "Brouillon enregistré. Vous pouvez maintenant ajouter vos fichiers.",
+    applicationId,
+  };
+}
+
+export async function updateRestaurant(
+  _state: VendorActionState,
+  form: FormData,
+): Promise<VendorActionState> {
+  const { restaurant } = await requireVendorManager();
+  const db = await createClient();
+  const payload = {
+    name: value(form, "name"),
+    description: value(form, "description"),
+    phone: value(form, "phone") || null,
+    whatsapp: value(form, "whatsapp") || null,
+    email: value(form, "email") || null,
+    address: value(form, "address") || null,
+    commune: value(form, "commune") || null,
+    latitude: value(form, "latitude") ? Number(value(form, "latitude")) : null,
+    longitude: value(form, "longitude")
+      ? Number(value(form, "longitude"))
+      : null,
+    maps_url: value(form, "maps_url") || null,
+    logo_path: value(form, "logo_path") || null,
+    cover_path: value(form, "cover_path") || null,
+    average_prep_minutes: Number(value(form, "average_prep_minutes")) || 25,
+    delivery_available: checked(form, "delivery_available"),
+    pickup_available: checked(form, "pickup_available"),
+  };
+  const { error } = await db
+    .from("restaurants")
+    .update(payload)
+    .eq("id", restaurant!.id);
+  if (error) {
+    safeError("restaurant_update_failed", error);
+    return { error: "Les modifications n’ont pas pu être enregistrées." };
+  }
+  const cuisineIds = form.getAll("cuisine_ids").map(String);
+  await db
+    .from("restaurant_cuisine_types")
+    .delete()
+    .eq("restaurant_id", restaurant!.id);
+  if (cuisineIds.length) {
+    const result = await db
+      .from("restaurant_cuisine_types")
+      .insert(
+        cuisineIds.map((id) => ({
+          restaurant_id: restaurant!.id,
+          cuisine_type_id: id,
+        })),
+      );
+    if (result.error)
+      return {
+        error:
+          "Restaurant enregistré, mais les types de cuisine n’ont pas été mis à jour.",
+      };
+  }
+  revalidatePath("/vendor/restaurant");
+  return { ok: true, message: "Modification enregistrée." };
+}
+export async function toggleRestaurantPause() {
+  const { restaurant } = await requireVendorManager();
+  const db = await createClient();
+  const next = restaurant!.operatingStatus === "paused" ? "open" : "paused";
+  const { error } = await db
+    .from("restaurants")
+    .update({ operating_status: next })
+    .eq("id", restaurant!.id);
+  if (error) throw error;
+  revalidatePath("/vendor");
+  revalidatePath("/vendor/restaurant");
+}
+
+function readOptions(
+  form: FormData,
+  type: "accompaniment" | "drink" | "supplement",
+) {
+  const names = form.getAll(`${type}_name`).map(String);
+  const prices = form.getAll(`${type}_price`).map(String);
+  return names
+    .map((name, index) => ({
+      name: name.trim(),
+      price: Math.max(0, Number(prices[index]) || 0),
+    }))
+    .filter((item) => item.name);
+}
+async function saveOptionGroups(
+  db: Awaited<ReturnType<typeof createClient>>,
+  restaurantId: string,
+  productId: string,
+  form: FormData,
+) {
+  for (const type of ["accompaniment", "drink", "supplement"] as const) {
+    const options = readOptions(form, type);
+    if (!options.length) continue;
+    const defaults =
+      type === "accompaniment"
+        ? { name: "Accompagnements", required: true, min: 1, max: 1 }
+        : type === "drink"
+          ? { name: "Boissons", required: false, min: 0, max: 1 }
+          : { name: "Suppléments", required: false, min: 0, max: null };
+    const { data: group, error } = await db
+      .from("product_option_groups")
+      .insert({
+        restaurant_id: restaurantId,
+        name: defaults.name,
+        type,
+        is_required: value(form, `${type}_required`)
+          ? value(form, `${type}_required`) === "yes"
+          : defaults.required,
+        min_choices:
+          value(form, `${type}_required`) === "yes" ? 1 : defaults.min,
+        max_choices:
+          value(form, `${type}_multiple`) === "yes" ? null : defaults.max,
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+    const inserted = await db
+      .from("product_options")
+      .insert(
+        options.map((option, index) => ({
+          group_id: group.id,
+          name: option.name,
+          price_delta: option.price,
+          sort_order: index,
+        })),
+      );
+    if (inserted.error) throw inserted.error;
+    const linked = await db
+      .from("product_option_group_links")
+      .insert({ product_id: productId, group_id: group.id });
+    if (linked.error) throw linked.error;
+  }
+}
+export async function createProduct(
+  _state: VendorActionState,
+  form: FormData,
+): Promise<VendorActionState> {
+  const { restaurant } = await requireVendorManager();
+  const db = await createClient();
+  const name = value(form, "name");
+  if (!name || !value(form, "category_id"))
+    return { error: "Ajoutez un nom et choisissez une catégorie." };
+  const { data, error } = await db
+    .from("products")
+    .insert({
+      restaurant_id: restaurant!.id,
+      category_id: value(form, "category_id"),
+      name,
+      description: value(form, "description"),
+      base_price: amount(form, "base_price"),
+      media_id: value(form, "media_id") || null,
+      availability: checked(form, "availability"),
+      slug: "",
+      sku: "",
+    })
+    .select("id")
+    .single();
+  if (error) {
+    safeError("product_create_failed", error);
+    return { error: "Le produit n’a pas pu être ajouté." };
+  }
+  try {
+    await saveOptionGroups(db, restaurant!.id, data.id, form);
+  } catch (error) {
+    safeError("options_create_failed", error as { code?: string });
+    return {
+      error:
+        "Produit ajouté, mais les options n’ont pas toutes été enregistrées.",
+    };
+  }
+  revalidatePath("/vendor/products");
+  redirect("/vendor/products?success=product-created");
+}
+export async function updateProduct(
+  productId: string,
+  _state: VendorActionState,
+  form: FormData,
+): Promise<VendorActionState> {
+  const context = await requireVendorManager();
+  const db = await createClient();
+  const { error } = await db
+    .from("products")
+    .update({
+      category_id: value(form, "category_id"),
+      name: value(form, "name"),
+      description: value(form, "description"),
+      base_price: amount(form, "base_price"),
+      media_id: value(form, "media_id") || null,
+      availability: checked(form, "availability"),
+    })
+    .eq("id", productId);
+  if (error) return { error: "Le produit n’a pas pu être modifié." };
+  const { data: links } = await db
+    .from("product_option_group_links")
+    .select("group_id")
+    .eq("product_id", productId);
+  const groupIds = (links ?? []).map((link) => link.group_id);
+  if (groupIds.length) {
+    await db
+      .from("product_option_group_links")
+      .delete()
+      .eq("product_id", productId);
+    await db.from("product_option_groups").delete().in("id", groupIds);
+  }
+  try {
+    await saveOptionGroups(db, context.restaurant!.id, productId, form);
+  } catch (optionError) {
+    safeError("options_update_failed", optionError as { code?: string });
+    return {
+      error:
+        "Produit modifié, mais les options n’ont pas toutes été enregistrées.",
+    };
+  }
+  revalidatePath("/vendor/products");
+  return { ok: true, message: "Modification enregistrée." };
+}
+export async function setProductAvailability(form: FormData) {
+  await requireVendorManager();
+  const db = await createClient();
+  const { error } = await db
+    .from("products")
+    .update({ availability: value(form, "availability") === "true" })
+    .eq("id", value(form, "product_id"))
+    .eq("hidden_by_admin", false);
+  if (error) throw error;
+  revalidatePath("/vendor/products");
+}
+export async function archiveProduct(form: FormData) {
+  await requireVendorManager();
+  const db = await createClient();
+  const { error } = await db
+    .from("products")
+    .update({ is_archived: true, availability: false })
+    .eq("id", value(form, "product_id"));
+  if (error) throw error;
+  revalidatePath("/vendor/products");
+}
+export async function requestCategory(
+  _state: VendorActionState,
+  form: FormData,
+): Promise<VendorActionState> {
+  const context = await requireVendorManager();
+  const name = value(form, "requested_name");
+  if (name.length < 2) return { error: "Indiquez le nom de la catégorie." };
+  const db = await createClient();
+  const { error } = await db
+    .from("category_requests")
+    .insert({
+      user_id: context.userId,
+      restaurant_id: context.restaurant!.id,
+      requested_name: name,
+      note: value(form, "note") || null,
+    });
+  if (error) return { error: "La demande n’a pas pu être envoyée." };
+  return { ok: true, message: "Demande envoyée à Come & Eat." };
+}
+export async function updateOrderStatus(form: FormData) {
+  await requireVendor();
+  const db = await createClient();
+  const { error } = await db.rpc("vendor_update_restaurant_order_status", {
+    target: value(form, "order_id"),
+    new_status: value(form, "status"),
+  });
+  if (error) throw error;
+  revalidatePath("/vendor/orders");
+  revalidatePath(`/vendor/orders/${value(form, "order_id")}`);
+}
+export async function saveHours(
+  _state: VendorActionState,
+  form: FormData,
+): Promise<VendorActionState> {
+  const { restaurant } = await requireVendorManager();
+  const db = await createClient();
+  const rows = Array.from({ length: 7 }, (_, day) => ({
+    restaurant_id: restaurant!.id,
+    day_of_week: day,
+    is_closed: !checked(form, `open_${day}`),
+    opens_at: checked(form, `open_${day}`) ? value(form, `opens_${day}`) : null,
+    closes_at: checked(form, `open_${day}`)
+      ? value(form, `closes_${day}`)
+      : null,
+  }));
+  const { error } = await db
+    .from("restaurant_hours")
+    .upsert(rows, { onConflict: "restaurant_id,day_of_week" });
+  if (error) return { error: "Les horaires n’ont pas pu être enregistrés." };
+  revalidatePath("/vendor/hours");
+  return { ok: true, message: "Horaires enregistrés." };
+}
+export async function createPromotion(
+  _state: VendorActionState,
+  form: FormData,
+): Promise<VendorActionState> {
+  const { restaurant } = await requireVendorManager();
+  const db = await createClient();
+  const productId = value(form, "product_id");
+  const { error } = await db
+    .from("promotions")
+    .insert({
+      name: value(form, "name"),
+      scope: productId ? "product" : "restaurant",
+      discount_type: value(form, "discount_type"),
+      value: amount(form, "value"),
+      restaurant_id: restaurant!.id,
+      product_id: productId || null,
+      starts_at: value(form, "starts_at") || null,
+      ends_at: value(form, "ends_at") || null,
+      is_active: checked(form, "is_active"),
+    });
+  if (error) return { error: "La promotion n’a pas pu être créée." };
+  revalidatePath("/vendor/promotions");
+  return { ok: true, message: "Promotion créée." };
+}
+export async function deleteMedia(form: FormData) {
+  const context = await requireVendorManager();
+  const db = await createClient();
+  const id = value(form, "media_id");
+  const { data } = await db
+    .from("media")
+    .select("path")
+    .eq("id", id)
+    .eq("restaurant_id", context.restaurant!.id)
+    .maybeSingle();
+  if (!data) return;
+  const removed = await db.storage.from("restaurant-media").remove([data.path]);
+  if (removed.error) throw removed.error;
+  const { error } = await db
+    .from("media")
+    .delete()
+    .eq("id", id)
+    .eq("restaurant_id", context.restaurant!.id);
+  if (error) throw error;
+  revalidatePath("/vendor/media");
+}

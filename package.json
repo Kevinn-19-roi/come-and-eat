@@ -13,7 +13,8 @@
     "test:official-store": "node scripts/test-official-store.mjs",
     "test:seller-application": "node scripts/test-seller-application-review.mjs",
     "test:admin": "node scripts/test-admin-management.mjs",
-    "test:qa-regressions": "node scripts/test-qa-regressions.mjs"
+    "test:qa-regressions": "node scripts/test-qa-regressions.mjs",
+    "test:payments": "node scripts/test-payments.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

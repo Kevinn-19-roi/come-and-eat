@@ -48,4 +48,11 @@ export const siteConfig = {
   },
   social: { instagram: '', facebook: '', tiktok: '', whatsapp: '' },
   externalLinks: { bloop: 'https://bloop-ci.com' },
+  payment: {
+    wave: {
+      label: 'Wave',
+      checkoutUrl: 'https://pay.wave.com/m/M_ci_4k5NBZ8a_cwl/c/ci/',
+      merchantPhone: '+225 07 11 45 97 23',
+    },
+  },
 } as const;

@@ -15,7 +15,7 @@ export const catalogRepository:CatalogRepository={getProducts:()=>marketplaceRep
 export const orderRepository:OrderRepository={getOrders:()=>marketplaceRepositories.orderRepository.list(),getByReference:reference=>marketplaceRepositories.orderRepository.getByReference(reference)};
 export const marketplaceOrderRepository={...marketplaceRepositories.orderRepository,...orderMutations};
 export const mediaRepository:MediaRepository={getMedia:()=>marketplaceRepositories.mediaRepository.list()};
-export const settingsRepository:SettingsRepository={getSettings:()=>marketplaceRepositories.settingsRepository.get() as Promise<SiteSettings>,getDeliveryZones:()=>localSettingsRepository.getDeliveryZones()};
+export const settingsRepository:SettingsRepository={getSettings:()=>marketplaceRepositories.settingsRepository.get() as Promise<SiteSettings>,getDeliveryZones:()=>marketplaceRepositories.settingsRepository.getDeliveryZones()};
 export const restaurantRepository=marketplaceRepositories.restaurantRepository;
 export const categoryRepository=marketplaceRepositories.categoryRepository;
 export const productRepository={...marketplaceRepositories.productRepository,...productMutations};

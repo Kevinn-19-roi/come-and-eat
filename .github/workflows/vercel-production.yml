@@ -31,10 +31,5 @@ jobs:
       - name: Validate project
         run: npm run lint && npm run typecheck && npm run test:ci
 
-      - name: Build production artifact
-        run: |
-          vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-          vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-
       - name: Build and deploy on Vercel
-        run: vercel deploy --prebuilt --yes --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --yes --prod --token=${{ secrets.VERCEL_TOKEN }}

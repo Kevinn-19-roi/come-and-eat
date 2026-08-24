@@ -15,6 +15,7 @@
     "test:admin": "node scripts/test-admin-management.mjs",
     "test:qa-regressions": "node scripts/test-qa-regressions.mjs",
     "test:payments": "node scripts/test-payments.mjs"
+    ,"test:members-orders": "node scripts/test-members-and-order-transitions.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

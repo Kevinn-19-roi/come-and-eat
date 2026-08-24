@@ -440,9 +440,11 @@ export async function updateOrderStatus(form: FormData) {
     target: value(form, "order_id"),
     new_status: value(form, "status"),
   });
-  if (error) throw error;
+  const id=value(form, "order_id");
+  if (error) {safeError('order_transition_failed',error);redirect(`/vendor/orders/${id}?error=transition`);}
   revalidatePath("/vendor/orders");
-  revalidatePath(`/vendor/orders/${value(form, "order_id")}`);
+  revalidatePath(`/vendor/orders/${id}`);
+  redirect(`/vendor/orders/${id}?updated=${encodeURIComponent(value(form,"status"))}`);
 }
 export async function saveHours(
   _state: VendorActionState,

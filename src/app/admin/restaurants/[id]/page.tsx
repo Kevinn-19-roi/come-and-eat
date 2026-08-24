@@ -4,6 +4,7 @@ import { AdminHeader } from "@/components/admin-ui";
 import { requireAdmin } from "@/lib/auth/admin";
 import {
   getAdminRestaurant,
+  getAdminUsers,
   operationLabels,
   orderLabels,
   validationLabels,
@@ -15,7 +16,7 @@ import {
   updateRestaurantAdmin,
 } from "@/app/admin/actions";
 import { formatPrice } from "@/lib/utils";
-import { VendorMediaPicker } from "@/components/vendor-forms";
+import {VendorMediaPicker,SubmitButton} from '@/components/vendor-forms';
 const days = [
   "Dimanche",
   "Lundi",
@@ -30,13 +31,14 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; memberSearch?: string }>;
 }) {
   await requireAdmin();
-  const [{ id }, { saved }] = await Promise.all([params, searchParams]);
-  const [details, cuisines] = await Promise.all([
+  const [{ id }, { saved,memberSearch }] = await Promise.all([params, searchParams]);
+  const [details, cuisines,users] = await Promise.all([
     getAdminRestaurant(id),
     getCuisineTypes(),
+    getAdminUsers(memberSearch?.trim()??''),
   ]);
   if (!details) notFound();
   const { restaurant } = details;
@@ -91,7 +93,9 @@ export default async function Page({
       </div>
       {saved ? (
         <div className="form-feedback success" role="status">
-          {saved === "suspend"
+          {saved?.startsWith('member-')
+            ? saved==='member-remove'?'Membre retiré du restaurant.':'Membre enregistré.'
+            : saved === "suspend"
             ? "Restaurant suspendu."
             : saved === "approve"
               ? "Restaurant réactivé."
@@ -240,11 +244,12 @@ export default async function Page({
         </form>
         <aside className="admin-detail-side">
           <section className="admin-card">
-            <h2>Membres</h2>
+            <div className="card-head"><h2>Membres</h2><a className="btn btn-outline" href="#ajouter-membre">+ Ajouter un membre</a></div>
             {details.members.map((member) => {
               const profile = Array.isArray(member.profile)
                 ? member.profile[0]
                 : member.profile;
+              const account=users.find((user:{id:string})=>user.id===member.user_id) as {email?:string}|undefined;
               return (
                 <form
                   action={saveRestaurantMember}
@@ -255,23 +260,29 @@ export default async function Page({
                   <input type="hidden" name="user_id" value={member.user_id} />
                   <span>
                     <strong>{profile?.display_name || "Utilisateur"}</strong>
-                    <small>{profile?.phone || "Sans téléphone"}</small>
+                    <small>{account?.email || profile?.phone || "Contact non renseigné"}</small>
                   </span>
                   <select name="role" defaultValue={member.role}>
                     <option value="owner">Propriétaire</option>
                     <option value="manager">Responsable</option>
                     <option value="staff">Équipe</option>
                   </select>
-                  <button>Enregistrer</button>
-                  <button className="danger-link" name="action" value="remove">
+                  <SubmitButton pendingLabel="Mise à jour…">Modifier le rôle</SubmitButton>
+                  <SubmitButton className="danger-link" name="action" value="remove" pendingLabel="Retrait…" confirmMessage="Retirer cet utilisateur du restaurant ?">
                     Retirer
-                  </button>
+                  </SubmitButton>
                 </form>
               );
             })}
             {!details.members.length ? (
-              <p className="muted">Aucun membre associé.</p>
+              <div className="admin-empty"><strong>Aucun membre associé</strong><p>Ajoutez un propriétaire, un manager ou un membre de l’équipe.</p></div>
             ) : null}
+            <details id="ajouter-membre" open={Boolean(memberSearch)} className="member-add-panel">
+              <summary>Ajouter un membre</summary>
+              <form method="get" className="admin-inline-form"><label className="field"><span>Rechercher un utilisateur</span><input name="memberSearch" defaultValue={memberSearch??''} placeholder="Nom, email ou téléphone" required/></label><button className="btn btn-outline">Rechercher</button></form>
+              {memberSearch&&users.length===0?<p className="muted">Aucun utilisateur trouvé.</p>:null}
+              {memberSearch?users.map((user:{id:string;display_name?:string;email:string;phone?:string})=><form action={saveRestaurantMember} className="member-search-result" key={user.id}><input type="hidden" name="restaurant_id" value={id}/><input type="hidden" name="user_id" value={user.id}/><span><strong>{user.display_name||user.email}</strong><small>{user.email}{user.phone?` · ${user.phone}`:''}</small></span><select name="role" defaultValue="staff" aria-label={`Rôle de ${user.display_name||user.email}`}><option value="owner">Propriétaire</option><option value="manager">Manager</option><option value="staff">Staff</option></select><SubmitButton pendingLabel="Ajout…">Ajouter</SubmitButton></form>):null}
+            </details>
           </section>
           <section className="admin-card">
             <h2>Horaires</h2>

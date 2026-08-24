@@ -46,10 +46,16 @@ export function SubmitButton({
   children,
   className = "btn btn-dark",
   confirmMessage,
+  pendingLabel = "Un instant…",
+  name,
+  value,
 }: {
   children: React.ReactNode;
   className?: string;
   confirmMessage?: string;
+  pendingLabel?: string;
+  name?: string;
+  value?: string;
 }) {
   const { pending } = useFormStatus();
   return (
@@ -57,12 +63,14 @@ export function SubmitButton({
       type="submit"
       className={className}
       disabled={pending}
+      name={name}
+      value={value}
       onClick={(event) => {
         if (confirmMessage && !window.confirm(confirmMessage))
           event.preventDefault();
       }}
     >
-      {pending ? "Un instant…" : children}
+      {pending ? pendingLabel : children}
     </button>
   );
 }

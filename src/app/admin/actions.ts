@@ -177,33 +177,24 @@ export async function saveRestaurantMember(form: FormData) {
   const db = await adminDb();
   const restaurant_id = value(form, "restaurant_id");
   const user_id = value(form, "user_id");
-  if (value(form, "action") === "remove") {
-    const { error } = await db
-      .from("restaurant_members")
-      .delete()
-      .eq("restaurant_id", restaurant_id)
-      .eq("user_id", user_id);
-    if (error) throw error;
-  } else {
-    const { error } = await db
-      .from("restaurant_members")
-      .upsert(
-        { restaurant_id, user_id, role: value(form, "role") },
-        { onConflict: "restaurant_id,user_id" },
-      );
-    if (error) throw error;
-  }
+  const action = value(form, "action") === "remove" ? "remove" : "upsert";
+  const role = value(form, "role") || "staff";
+  if (!['owner','manager','staff'].includes(role)) throw new Error('Rôle restaurant invalide.');
+  const { error } = await db.rpc('admin_manage_restaurant_member', {target_restaurant:restaurant_id,target_user:user_id,new_role:role,operation:action});
+  if (error) throw error;
   revalidatePath(`/admin/restaurants/${restaurant_id}`);
+  revalidatePath('/', 'layout');
+  revalidatePath('/vendor', 'layout');
+  redirect(`/admin/restaurants/${restaurant_id}?saved=member-${action}`);
 }
 export async function updateAdminOrderStatus(form: FormData) {
   const db = await adminDb();
-  const { error } = await db
-    .from("restaurant_orders")
-    .update({ status: value(form, "status") })
-    .eq("id", value(form, "restaurant_order_id"));
-  if (error) throw error;
-  revalidatePath(`/admin/orders/${value(form, "order_id")}`);
+  const orderId=value(form,"order_id");const subOrderId=value(form,"restaurant_order_id");const status=value(form,"status");
+  const { error } = await db.rpc('vendor_update_restaurant_order_status',{target:subOrderId,new_status:status});
+  if (error) {console.error('[admin-order] transition_failed',{code:error.code});redirect(`/admin/orders/${orderId}?updated=transition-error`);}
+  revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/admin/orders");
+  redirect(`/admin/orders/${orderId}?updated=${encodeURIComponent(status)}`);
 }
 export async function savePromotionAdmin(form: FormData) {
   const db = await adminDb();

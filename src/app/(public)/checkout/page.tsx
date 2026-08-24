@@ -1,3 +1,3 @@
 import type {Metadata} from 'next';import {CheckoutForm} from '@/components/checkout-form';import {settingsRepository} from '@/services/repositories';
-export const metadata:Metadata={title:'Finaliser la commande'};
+export const metadata:Metadata={title:'Finaliser la commande',robots:{index:false,follow:false}};
 export default async function Page(){const[zones,settings]=await Promise.all([settingsRepository.getDeliveryZones(),settingsRepository.getSettings()]);const availableZones=settings.deliveryEnabled?zones:[];return <><section className="inner-hero checkout-hero"><div className="store-container"><p className="section-kicker">✓ Simple, rapide et sécurisé</p><h1>Finaliser ma commande</h1><p>Plus que quelques informations avant de passer à table.</p></div></section><CheckoutForm zones={availableZones}/></>}

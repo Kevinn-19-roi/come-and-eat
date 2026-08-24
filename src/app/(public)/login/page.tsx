@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getPublicUser } from '@/lib/auth/public-user';
 import { PublicAuthForm } from '@/components/public-auth-form';
 
-export const metadata = { title: 'Connexion' };
+export const metadata = { title: 'Connexion', robots: { index: false, follow: false } };
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const [{ next = '' }, user] = await Promise.all([searchParams, getPublicUser()]);
   if (user) redirect(next.startsWith('/') && !next.startsWith('//') ? next : '/account');

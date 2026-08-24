@@ -1,3 +1,3 @@
 import Link from 'next/link';import {VendorLoginForm} from './vendor-login-form';
-export const metadata={title:'Connexion vendeur | Come & Eat'};
+export const metadata={title:'Connexion vendeur | Come & Eat',robots:{index:false,follow:false}};
 export default async function VendorLogin({searchParams}:{searchParams:Promise<{error?:string}>}){const{error}=await searchParams;return <main className="auth-page"><section className="auth-card"><p className="section-kicker">Espace restaurant</p><h1>Bienvenue</h1><p>Gérez votre carte et vos commandes avec des mots simples.</p><VendorLoginForm initialError={error==='acces'?'Ce compte ne peut pas accéder à cet espace.':undefined}/><small>Vous souhaitez rejoindre Come & Eat ? <Link href="/vendor/application">Devenir vendeur</Link></small></section></main>}

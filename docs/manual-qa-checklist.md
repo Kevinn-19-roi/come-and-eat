@@ -1,44 +1,49 @@
-# Checklist de recette Come & Eat
+# Recette humaine Come & Eat
 
 ## Client
-- [ ] J’ouvre l’accueil et le menu sur téléphone.
-- [ ] Je crée un compte puis je me connecte.
-- [ ] J’ajoute un plat au panier et je change sa quantité.
-- [ ] Je passe à l’étape de commande sans erreur.
-- [ ] Je me déconnecte depuis le menu.
+
+- [ ] J’ouvre l’accueil, les restaurants et le menu sur téléphone.
+- [ ] Je crée un compte, me connecte puis me déconnecte.
+- [ ] J’ajoute un plat avec options et change sa quantité.
+- [ ] Je choisis une zone, saisis l’adresse et applique un code promo valide.
+- [ ] Je crée la commande et conserve le lien de suivi.
+- [ ] Je vois les statuts évoluer sans accéder aux panels.
 
 ## Vendeur
-- [ ] Je soumets une demande vendeur complète.
-- [ ] Je vois le statut et la note de l’administration.
-- [ ] J’ouvre « Mon restaurant » après acceptation.
-- [ ] J’ajoute puis je rends indisponible un produit.
-- [ ] Je consulte uniquement les commandes de mon restaurant.
-- [ ] Je modifie les horaires et mets le restaurant en pause.
+
+- [ ] Je soumets une candidature et retrouve mon brouillon.
+- [ ] Après acceptation, « Mon restaurant » apparaît.
+- [ ] Je modifie les informations, le WhatsApp, les photos et les horaires.
+- [ ] Je crée un produit et ses accompagnements, boissons et suppléments.
+- [ ] Je traite uniquement les commandes de mon restaurant.
+- [ ] Je vois le brut, la commission et mon net.
 
 ## Admin
-- [ ] Je me connecte sur `/admin/login`.
-- [ ] Le tableau de bord affiche des nombres réels ou zéro.
-- [ ] Je consulte et traite une demande vendeur.
-- [ ] Je recherche un restaurant et ouvre sa fiche.
-- [ ] Je masque un produit avec une note.
-- [ ] Je crée ou désactive une catégorie.
-- [ ] Je consulte les utilisateurs et leurs restaurants.
-- [ ] Je consulte une commande avec ses sous-commandes.
-- [ ] Je modifie un texte du site puis vérifie le site public.
+
+- [ ] Je traite une candidature et consulte ses documents privés.
+- [ ] Je suspends/réactive un restaurant et gère ses membres.
+- [ ] Je masque un produit avec une note visible du vendeur.
+- [ ] Je crée/désactive une catégorie, un type de cuisine et une zone.
+- [ ] Je confirme un paiement Wave après vérification du compte marchand.
+- [ ] Je vois chaque sous-commande, son WhatsApp et son historique.
+- [ ] J’exporte les commandes en CSV et vérifie les accents dans Excel.
 
 ## Boutique Come & Eat
-- [ ] J’ouvre « Boutique Come & Eat » depuis l’administration.
-- [ ] Je modifie ses informations sans compte vendeur.
-- [ ] Je gère un produit, ses options, ses photos et ses horaires.
-- [ ] Un vendeur externe ne peut pas modifier la boutique officielle.
 
-## Commande
-- [ ] Une commande de deux restaurants affiche deux sous-commandes à l’admin.
-- [ ] Chaque vendeur ne voit que sa propre partie.
-- [ ] Un changement de statut apparaît dans l’historique.
+- [ ] Je gère identité, photos, horaires, pause, produits et promotions.
+- [ ] La commission de la boutique officielle reste à 0 %.
+- [ ] Un vendeur externe ne peut pas la modifier.
+
+## Commande multi-restaurants
+
+- [ ] L’admin voit la commande complète.
+- [ ] Chaque vendeur ne voit et ne modifie que sa sous-commande.
+- [ ] Un restaurant fermé bloque toute la validation avant paiement.
+- [ ] Le lien WhatsApp d’un restaurant ne contient aucun article de l’autre.
 
 ## Mobile
-- [ ] Le menu admin s’ouvre et se ferme à 375 px.
-- [ ] Les filtres restent utilisables à 430 px.
-- [ ] Les tableaux défilent sans casser la page.
-- [ ] Les formulaires restent lisibles et les boutons accessibles.
+
+- [ ] À 375 et 430 px, aucun écran ne déborde horizontalement.
+- [ ] Les menus admin/vendeur s’ouvrent, se ferment et restent lisibles.
+- [ ] Les formulaires, tableaux et actions critiques restent accessibles.
+- [ ] Le panier, le checkout et le suivi restent simples à utiliser.

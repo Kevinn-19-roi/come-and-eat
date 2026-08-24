@@ -23,7 +23,11 @@
     "test:commission": "node scripts/test-sprint-6-1.mjs",
     "test:csv": "node scripts/test-sprint-6-1.mjs",
     "test:product-deletion": "node scripts/test-sprint-6-1.mjs",
-    "test:sprint-6-1:live": "node scripts/test-sprint-6-1-live.mjs"
+    "test:sprint-6-1:live": "node scripts/test-sprint-6-1-live.mjs",
+    "test:restaurant-hours-checkout": "node scripts/test-restaurant-operations.mjs",
+    "test:whatsapp-order-link": "node scripts/test-restaurant-operations.mjs",
+    "test:commission-snapshot": "node scripts/test-restaurant-operations.mjs",
+    "test:final-operations:live": "node scripts/test-final-operations-live.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

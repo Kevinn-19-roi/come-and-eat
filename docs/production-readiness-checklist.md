@@ -36,7 +36,8 @@ Dernière revue : 24 août 2026.
 ## Exploitation
 
 - [x] Le workflow GitHub Actions utilise Node.js 24 et une version Vercel CLI épinglée.
-- [x] La CI exécute lint, TypeScript, la suite métier complète et le build avant déploiement.
+- [x] La CI exécute lint, TypeScript, les contrats métier non destructifs et le build avant déploiement.
+- [x] Les tests Supabase live auto-nettoyants sont exécutés séparément depuis un environnement lié.
 - [ ] Connecter un fournisseur d’email transactionnel avant d’attendre des emails réels.
 - [ ] Remplacer le paiement manuel uniquement lorsque Wave fournit une API/webhook officiel au client.
 

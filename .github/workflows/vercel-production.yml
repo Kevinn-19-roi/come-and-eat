@@ -28,11 +28,6 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@59.1.4
 
-      - name: Pull production environment
-        run: |
-          vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-          cp .vercel/.env.production.local .env.local
-
       - name: Validate project
         run: npm run lint && npm run typecheck && npm run test:ci && npm run build
 

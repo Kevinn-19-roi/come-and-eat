@@ -29,7 +29,7 @@
     "test:whatsapp-order-link": "node scripts/test-restaurant-operations.mjs",
     "test:commission-snapshot": "node scripts/test-restaurant-operations.mjs",
     "test:final-operations:live": "node scripts/test-final-operations-live.mjs",
-    "test:ci": "npm test && npm run test:vendor-rls && npm run test:official-store && npm run test:seller-application && npm run test:admin && npm run test:qa-regressions && npm run test:payments && npm run test:members-orders && npm run test:sprint-6-1 && npm run test:restaurant-hours-checkout"
+    "test:ci": "npm test && npm run test:payments && npm run test:sprint-6-1 && npm run test:restaurant-hours-checkout"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

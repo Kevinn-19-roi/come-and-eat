@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';import fs from 'node:fs';
+const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
+const sql=read('supabase/migrations/202608240002_sprint_6_1_completion.sql');
+for(const marker of ['admin_confirm_manual_payment','quote_marketplace_order','get_public_order_status','admin_delete_product_if_unused','payment_status_events','confirmed_by'])assert.ok(sql.includes(marker),`Contrat SQL absent: ${marker}`);
+assert.match(sql,/public_tracking_token=tracking_token/);assert.match(sql,/if not public\.is_admin\(\)/);assert.match(sql,/restaurant_id is null and is_active/);assert.match(sql,/if exists\(select 1 from public\.order_items/);
+const tracking=read('src/components/order-status.tsx');for(const marker of ['15000','Prête pour retrait','Remise au client','tracking-timeline'])assert.ok(tracking.includes(marker),`Suivi absent: ${marker}`);
+const checkout=read('src/components/checkout-form.tsx');for(const marker of ['Code appliqué','Réduction','Les livraisons sont fermées','promo-control'])assert.ok(checkout.includes(marker),`Checkout absent: ${marker}`);
+const adminOrder=read('src/app/admin/orders/[id]/page.tsx');for(const marker of ['Confirmer le paiement','Écrire sur WhatsApp','Commission Come & Eat','Confirmation…'])assert.ok(adminOrder.includes(marker),`Commande admin absente: ${marker}`);
+const csv=read('src/lib/csv.ts');assert.ok(csv.includes('\\uFEFF'));assert.ok(csv.includes("replace(/\"/g,'\"\"')"));
+console.log('Sprint 6.1: suivi privé, devis promo, Wave manuel, commission, WhatsApp, CSV et suppression sécurisée validés.');

@@ -179,7 +179,7 @@ export async function getVendorOrders(restaurantId: string) {
   const { data, error } = await db
     .from("restaurant_orders")
     .select(
-      "id,status,subtotal,delivery_fee,prep_minutes,vendor_note,created_at,order:orders(reference,customer_name,customer_phone,customer_email,fulfillment,address,commune,customer_note,wants_cutlery,payment_method,total,created_at),items:order_items(id,product_name,quantity,unit_price,options,line_total)",
+      "id,status,subtotal,delivery_fee,gross_amount,platform_commission,seller_net_amount,commission_rate_bps,prep_minutes,vendor_note,created_at,order:orders(reference,customer_name,customer_phone,customer_email,fulfillment,address,commune,customer_note,wants_cutlery,payment_method,payment_status,total,created_at),items:order_items(id,product_name,quantity,unit_price,options,line_total)",
     )
     .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false });
@@ -191,7 +191,7 @@ export async function getVendorOrder(restaurantId: string, id: string) {
   const { data, error } = await db
     .from("restaurant_orders")
     .select(
-      "id,status,subtotal,delivery_fee,prep_minutes,vendor_note,created_at,order:orders(reference,customer_name,customer_phone,customer_email,fulfillment,address,commune,customer_note,wants_cutlery,payment_method,total,created_at),items:order_items(id,product_name,quantity,unit_price,options,line_total)",
+      "id,status,subtotal,delivery_fee,gross_amount,platform_commission,seller_net_amount,commission_rate_bps,prep_minutes,vendor_note,created_at,order:orders(reference,customer_name,customer_phone,customer_email,fulfillment,address,commune,customer_note,wants_cutlery,payment_method,payment_status,total,created_at),items:order_items(id,product_name,quantity,unit_price,options,line_total)",
     )
     .eq("restaurant_id", restaurantId)
     .eq("id", id)

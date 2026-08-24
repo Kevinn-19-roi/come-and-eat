@@ -114,6 +114,15 @@ export async function moderateProduct(form: FormData) {
   if (error) throw error;
   revalidatePath("/admin/products");
 }
+export async function deleteProductAdmin(form: FormData) {
+  const db = await adminDb();
+  const { error } = await db.rpc("admin_delete_product_if_unused", {
+    target_product: value(form, "id"),
+  });
+  if (error) redirect(`/admin/products?deleted=history`);
+  revalidatePath("/admin/products");
+  redirect("/admin/products?deleted=success");
+}
 export async function saveCategory(form: FormData) {
   const db = await adminDb();
   const id = value(form, "id");
@@ -196,6 +205,18 @@ export async function updateAdminOrderStatus(form: FormData) {
   revalidatePath("/admin/orders");
   redirect(`/admin/orders/${orderId}?updated=${encodeURIComponent(status)}`);
 }
+export async function confirmManualPayment(form: FormData) {
+  const db = await adminDb();
+  const orderId = value(form, "order_id");
+  const { error } = await db.rpc("admin_confirm_manual_payment", { target_order: orderId });
+  if (error) {
+    console.error("[admin-payment] confirmation_failed", { code: error.code });
+    redirect(`/admin/orders/${orderId}?payment=error`);
+  }
+  revalidatePath(`/admin/orders/${orderId}`);
+  revalidatePath(`/order`);
+  redirect(`/admin/orders/${orderId}?payment=paid`);
+}
 export async function savePromotionAdmin(form: FormData) {
   const db = await adminDb();
   const id = value(form, "id");
@@ -254,13 +275,23 @@ export async function saveDeliveryZone(form: FormData) {
     estimated_minutes: value(form, "estimated_minutes")
       ? number(form, "estimated_minutes")
       : null,
-    restaurant_id: value(form, "restaurant_id") || null,
+    restaurant_id: null,
   };
   const result = id
     ? await db.from("delivery_zones").update(payload).eq("id", id)
     : await db.from("delivery_zones").insert(payload);
   if (result.error) throw result.error;
   revalidatePath("/admin/delivery");
+}
+export async function toggleDeliveryZone(form: FormData) {
+  const db = await adminDb();
+  const id = value(form, "id");
+  const active = value(form, "active") === "true";
+  const { error } = await db.from("delivery_zones").update({ is_active: active }).eq("id", id).is("restaurant_id", null);
+  if (error) throw error;
+  revalidatePath("/admin/delivery");
+  revalidatePath("/checkout");
+  redirect(`/admin/delivery?updated=${active ? "activated" : "deactivated"}`);
 }
 export async function saveSiteSetting(form: FormData) {
   const admin = await requireAdmin();
@@ -282,6 +313,21 @@ export async function saveSiteSetting(form: FormData) {
   revalidatePath("/admin/content");
   revalidatePath("/admin/settings");
   revalidatePath("/");
+}
+export async function saveCommissionSetting(form: FormData) {
+  const admin = await requireAdmin();
+  const db = await createClient();
+  const rate = Number(value(form, "commission_rate"));
+  if (!Number.isFinite(rate) || rate < 0 || rate > 100) throw new Error("La commission doit être comprise entre 0 et 100 %.");
+  const { error } = await db.from("site_settings").upsert({
+    key: "marketplace_commission",
+    value: { rate_bps: Math.round(rate * 100) },
+    is_public: false,
+    updated_by: admin.id,
+  }, { onConflict: "key" });
+  if (error) throw error;
+  revalidatePath("/admin/settings");
+  redirect("/admin/settings?saved=commission");
 }
 export async function saveHomepageSection(form: FormData) {
   const db = await adminDb();

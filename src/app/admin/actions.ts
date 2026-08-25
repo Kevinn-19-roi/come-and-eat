@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
+import {retryEmailEvent,sendOrderStatusNotification,sendPaymentConfirmedNotifications} from "@/lib/notifications/service";
 const value = (form: FormData, name: string) =>
   String(form.get(name) ?? "").trim();
 const checked = (form: FormData, name: string) => form.get(name) === "on";
@@ -201,6 +202,7 @@ export async function updateAdminOrderStatus(form: FormData) {
   const orderId=value(form,"order_id");const subOrderId=value(form,"restaurant_order_id");const status=value(form,"status");
   const { error } = await db.rpc('vendor_update_restaurant_order_status',{target:subOrderId,new_status:status});
   if (error) {console.error('[admin-order] transition_failed',{code:error.code});redirect(`/admin/orders/${orderId}?updated=transition-error`);}
+  await sendOrderStatusNotification(subOrderId,status);
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/admin/orders");
   redirect(`/admin/orders/${orderId}?updated=${encodeURIComponent(status)}`);
@@ -213,10 +215,12 @@ export async function confirmManualPayment(form: FormData) {
     console.error("[admin-payment] confirmation_failed", { code: error.code });
     redirect(`/admin/orders/${orderId}?payment=error`);
   }
+  await sendPaymentConfirmedNotifications(orderId);
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath(`/order`);
   redirect(`/admin/orders/${orderId}?payment=paid`);
 }
+export async function retryOrderEmail(form:FormData){await adminDb();const orderId=value(form,'order_id'),eventId=value(form,'event_id');await retryEmailEvent(eventId);revalidatePath(`/admin/orders/${orderId}`);redirect(`/admin/orders/${orderId}?email=retry`)}
 export async function savePromotionAdmin(form: FormData) {
   const db = await adminDb();
   const id = value(form, "id");
@@ -328,6 +332,30 @@ export async function saveCommissionSetting(form: FormData) {
   if (error) throw error;
   revalidatePath("/admin/settings");
   redirect("/admin/settings?saved=commission");
+}
+export async function saveEmailSettings(form: FormData) {
+  const admin = await requireAdmin();
+  const db = await createClient();
+  const replyTo = value(form, "reply_to");
+  const adminRecipient = value(form, "admin_recipient");
+  const isEmail = (entry: string) => !entry || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry);
+  if (!isEmail(replyTo) || !isEmail(adminRecipient)) {
+    throw new Error("Vérifiez les adresses e-mail indiquées.");
+  }
+  const { error } = await db.from("site_settings").upsert({
+    key: "email",
+    value: {
+      enabled: checked(form, "enabled"),
+      sender_name: value(form, "sender_name") || "Come & Eat",
+      reply_to: replyTo,
+      admin_recipient: adminRecipient,
+    },
+    is_public: false,
+    updated_by: admin.id,
+  }, { onConflict: "key" });
+  if (error) throw error;
+  revalidatePath("/admin/settings");
+  redirect("/admin/settings?saved=email");
 }
 export async function saveHomepageSection(form: FormData) {
   const db = await adminDb();

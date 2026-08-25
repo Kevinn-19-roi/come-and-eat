@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import {sendOrderStatusNotification} from "@/lib/notifications/service";
 import {
   getVendorContext,
   requireVendor,
@@ -442,6 +443,7 @@ export async function updateOrderStatus(form: FormData) {
   });
   const id=value(form, "order_id");
   if (error) {safeError('order_transition_failed',error);redirect(`/vendor/orders/${id}?error=transition`);}
+  await sendOrderStatusNotification(id,value(form,"status"));
   revalidatePath("/vendor/orders");
   revalidatePath(`/vendor/orders/${id}`);
   redirect(`/vendor/orders/${id}?updated=${encodeURIComponent(value(form,"status"))}`);

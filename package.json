@@ -29,7 +29,11 @@
     "test:whatsapp-order-link": "node scripts/test-restaurant-operations.mjs",
     "test:commission-snapshot": "node scripts/test-restaurant-operations.mjs",
     "test:final-operations:live": "node scripts/test-final-operations-live.mjs",
-    "test:ci": "npm test && npm run test:payments && npm run test:sprint-6-1 && npm run test:restaurant-hours-checkout"
+    "test:emails": "node scripts/test-emails.mjs",
+    "test:auth-email": "node scripts/test-emails.mjs",
+    "test:notification-idempotency": "node scripts/test-emails.mjs",
+    "test:notification-idempotency:live": "node scripts/test-email-idempotency-live.mjs",
+    "test:ci": "npm test && npm run test:payments && npm run test:sprint-6-1 && npm run test:restaurant-hours-checkout && npm run test:emails"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

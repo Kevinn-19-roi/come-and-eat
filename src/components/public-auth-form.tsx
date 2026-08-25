@@ -20,6 +20,7 @@ export function PublicAuthForm({ mode, next = '' }: { mode: 'login' | 'signup'; 
     {signup ? <label><span>Votre nom</span><input name="display_name" autoComplete="name" required placeholder="Ex. Awa Koné" /></label> : null}
     <label><span>Email</span><input name="email" type="email" autoComplete="email" required placeholder="vous@exemple.com" /></label>
     <PasswordField name="password" autoComplete={signup ? 'new-password' : 'current-password'} minLength={8} />
+    {!signup ? <p className="auth-switch"><Link href="/forgot-password">Mot de passe oublié ?</Link></p> : null}
     {signup ? <PasswordField name="password_confirmation" label="Confirmer le mot de passe" autoComplete="new-password" minLength={8} /> : null}
     {state.error ? <p className="auth-feedback error" role="alert">{state.error}</p> : null}
     {state.message ? <p className="auth-feedback success" role="status">{state.message}</p> : null}

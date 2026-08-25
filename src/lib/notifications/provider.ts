@@ -1,9 +1,8 @@
 import 'server-only';
-export type EmailEvent='customer_order_received'|'admin_order_requires_review'|'customer_payment_confirmed'|'vendor_order_ready';
-export type EmailMessage={event:EmailEvent;to:string;reference:string;restaurantName?:string};
-export interface EmailProvider{send(message:EmailMessage):Promise<{sent:boolean;providerId?:string;reason?:string}>}
-/** Aucun faux envoi en production : une intégration réelle devra remplacer ce provider. */
-export const unconfiguredEmailProvider:EmailProvider={async send(){return{sent:false,reason:'Aucun fournisseur email transactionnel configuré.'}}};
-export function getEmailProvider():EmailProvider{return unconfiguredEmailProvider}
-export interface NotificationProvider{sendOrderCreated(input:{reference:string;email?:string;phone:string}):Promise<{sent:boolean;reason?:string}>}
-export const deferredNotificationProvider:NotificationProvider={async sendOrderCreated(input){if(!input.email)return{sent:false,reason:'Aucune adresse email.'};return getEmailProvider().send({event:'customer_order_received',to:input.email,reference:input.reference})}};
+export type EmailPayload={to:string;subject:string;html:string;text:string;idempotencyKey:string;replyTo?:string};
+export type EmailResult={sent:boolean;providerId?:string;reason?:string;errorCode?:string};
+export interface EmailProvider{send(message:EmailPayload):Promise<EmailResult>}
+const unconfiguredEmailProvider:EmailProvider={async send(){return{sent:false,reason:'Aucun fournisseur email transactionnel configuré.',errorCode:'provider_unconfigured'}}};
+function resendProvider(apiKey:string,from:string):EmailProvider{return{async send(message){try{const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${apiKey}`,'Content-Type':'application/json','Idempotency-Key':message.idempotencyKey},body:JSON.stringify({from,to:[message.to],subject:message.subject,html:message.html,text:message.text,reply_to:message.replyTo})});const body=await response.json().catch(()=>({})) as{id?:string;name?:string};if(!response.ok)return{sent:false,reason:'Le fournisseur a refusé l’envoi.',errorCode:body.name||`http_${response.status}`};return{sent:true,providerId:body.id}}catch{return{sent:false,reason:'Le fournisseur email est momentanément indisponible.',errorCode:'provider_network_error'}}}}}
+export function getEmailProvider(senderName?:string):EmailProvider{const key=process.env.RESEND_API_KEY,configuredFrom=process.env.EMAIL_FROM;if(!key||!configuredFrom)return unconfiguredEmailProvider;const from=senderName&&!configuredFrom.includes('<')?`${senderName.replace(/[<>\r\n]/g,'').trim()} <${configuredFrom}>`:configuredFrom;return resendProvider(key,from)}
+export function isEmailProviderConfigured(){return Boolean(process.env.RESEND_API_KEY&&process.env.EMAIL_FROM)}

@@ -4,7 +4,7 @@ export type OrderEmailItem={productName:string;quantity:number;options:string[];
 export type OrderEmailInput={name?:string;customerPhone?:string;createdAt?:string;reference:string;orderId?:string;restaurantOrderId?:string;restaurantName?:string;restaurants?:string[];items?:OrderEmailItem[];total?:number;fulfillment?:'delivery'|'pickup';zone?:string;address?:string;instructions?:string;paymentStatus?:string;trackingToken?:string};
 export type EmailTemplate={subject:string;html:string;text:string};
 const esc=(value:unknown)=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]??char));
-const siteUrl=()=>String(process.env.NEXT_PUBLIC_SITE_URL||process.env.SITE_URL||'https://come-and-eat.vercel.app').replace(/\/$/,'');
+const siteUrl=()=>String(process.env.NEXT_PUBLIC_SITE_URL||process.env.SITE_URL||'https://comeandeat.org').replace(/\/$/,'');
 const line=(label:string,value:unknown)=>value?`<p style="margin:6px 0"><strong>${esc(label)} :</strong> ${esc(value)}</p>`:'';
 const button=(label:string,url:string)=>`<p style="margin:28px 0"><a href="${esc(url)}" style="background:#0b513c;color:#fff;text-decoration:none;padding:13px 20px;border-radius:999px;display:inline-block;font-weight:700">${esc(label)}</a></p>`;
 const itemBlock=(rows:OrderEmailItem[]=[])=>(rows.length?`<div style="border-top:1px solid #e6e2da;margin-top:20px;padding-top:12px">${rows.map(item=>`<p style="margin:10px 0"><strong>${item.quantity} × ${esc(item.productName)}</strong>${item.options.length?`<br><span style="color:#59645f">${item.options.map(esc).join(' · ')}</span>`:''}<br>${formatPrice(item.lineTotal)}</p>`).join('')}</div>`:'');

@@ -29,7 +29,7 @@ Ne pas inventer de valeur DNS. Attendre le statut « vérifié » avant d’util
 
 Pour les e-mails de confirmation et de récupération de mot de passe, configurer le SMTP Supabase avec les identifiants SMTP du fournisseur. Ajouter :
 
-- `https://come-and-eat.vercel.app/auth/callback` aux URL de redirection autorisées ;
+- `https://comeandeat.org/auth/callback` aux URL de redirection autorisées ;
 - l’URL de production comme URL du site ;
 - des modèles Supabase cohérents avec Come & Eat.
 

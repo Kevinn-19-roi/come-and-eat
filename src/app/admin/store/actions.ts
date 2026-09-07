@@ -31,7 +31,7 @@ async function saveGroups(
     if (!options.length) continue;
     const defaults =
       type === "accompaniment"
-        ? { name: "Accompagnements", required: true, min: 1, max: 1 }
+        ? { name: "Accompagnements", required: false, min: 0, max: 1 }
         : type === "drink"
           ? { name: "Boissons", required: false, min: 0, max: 1 }
           : { name: "Suppléments", required: false, min: 0, max: null };

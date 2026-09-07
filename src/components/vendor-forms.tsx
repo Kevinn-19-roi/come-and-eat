@@ -163,7 +163,7 @@ export function VendorMediaPicker({
               setPath("");
             }}
           >
-            Changer
+            Supprimer la photo
           </button>
         </div>
       ) : null}
@@ -213,7 +213,7 @@ const optionMeta: Record<
   accompaniment: {
     label: "Accompagnements",
     example: "Frites",
-    required: true,
+    required: false,
   },
   drink: { label: "Boissons", example: "Bissap", required: false },
   supplement: { label: "Suppléments", example: "Fromage", required: false },
@@ -300,9 +300,7 @@ function OptionGroup({
         <div>
           <h3>{meta.label}</h3>
           <p>
-            {type === "supplement"
-              ? "Facultatif par défaut, plusieurs choix possibles."
-              : "Le choix reste simple pour le client."}
+            Facultatif par défaut. Le client peut commander sans faire de choix.
           </p>
         </div>
         <div className="simple-rules">

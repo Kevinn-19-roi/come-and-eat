@@ -273,7 +273,7 @@ async function saveOptionGroups(
     if (!options.length) continue;
     const defaults =
       type === "accompaniment"
-        ? { name: "Accompagnements", required: true, min: 1, max: 1 }
+        ? { name: "Accompagnements", required: false, min: 0, max: 1 }
         : type === "drink"
           ? { name: "Boissons", required: false, min: 0, max: 1 }
           : { name: "Suppléments", required: false, min: 0, max: null };
@@ -447,6 +447,19 @@ export async function updateOrderStatus(form: FormData) {
   revalidatePath("/vendor/orders");
   revalidatePath(`/vendor/orders/${id}`);
   redirect(`/vendor/orders/${id}?updated=${encodeURIComponent(value(form,"status"))}`);
+}
+export async function confirmVendorCashCollection(form: FormData) {
+  await requireVendor();
+  const db = await createClient();
+  const id = value(form, "order_id");
+  const { error } = await db.rpc("confirm_cash_collection", { target_restaurant_order: id });
+  if (error) {
+    safeError("cash_collection_failed", error);
+    redirect(`/vendor/orders/${id}?error=cash`);
+  }
+  revalidatePath("/vendor/orders");
+  revalidatePath(`/vendor/orders/${id}`);
+  redirect(`/vendor/orders/${id}?updated=cash-collected`);
 }
 export async function saveHours(
   _state: VendorActionState,

@@ -220,6 +220,18 @@ export async function confirmManualPayment(form: FormData) {
   revalidatePath(`/order`);
   redirect(`/admin/orders/${orderId}?payment=paid`);
 }
+export async function confirmAdminCashCollection(form: FormData) {
+  const db = await adminDb();
+  const orderId = value(form, "order_id");
+  const subOrderId = value(form, "restaurant_order_id");
+  const { error } = await db.rpc("confirm_cash_collection", { target_restaurant_order: subOrderId });
+  if (error) {
+    console.error("[admin-payment] cash_collection_failed", { code: error.code });
+    redirect(`/admin/orders/${orderId}?payment=cash-error`);
+  }
+  revalidatePath(`/admin/orders/${orderId}`);
+  redirect(`/admin/orders/${orderId}?payment=cash-collected`);
+}
 export async function retryOrderEmail(form:FormData){await adminDb();const orderId=value(form,'order_id'),eventId=value(form,'event_id');await retryEmailEvent(eventId);revalidatePath(`/admin/orders/${orderId}`);redirect(`/admin/orders/${orderId}?email=retry`)}
 export async function savePromotionAdmin(form: FormData) {
   const db = await adminDb();

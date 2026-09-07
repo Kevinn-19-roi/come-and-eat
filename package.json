@@ -30,10 +30,12 @@
     "test:commission-snapshot": "node scripts/test-restaurant-operations.mjs",
     "test:final-operations:live": "node scripts/test-final-operations-live.mjs",
     "test:emails": "node scripts/test-emails.mjs",
+    "test:cash-payments": "node scripts/test-cash-and-optional-options.mjs",
+    "test:optional-product-options": "node scripts/test-cash-and-optional-options.mjs",
     "test:auth-email": "node scripts/test-emails.mjs",
     "test:notification-idempotency": "node scripts/test-emails.mjs",
     "test:notification-idempotency:live": "node scripts/test-email-idempotency-live.mjs",
-    "test:ci": "npm test && npm run test:payments && npm run test:sprint-6-1 && npm run test:restaurant-hours-checkout && npm run test:emails"
+    "test:ci": "npm test && npm run test:payments && npm run test:sprint-6-1 && npm run test:restaurant-hours-checkout && npm run test:emails && npm run test:cash-payments"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

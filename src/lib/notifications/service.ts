@@ -70,7 +70,7 @@ async function send(input: SendInput) {
 async function orderData(orderId: string) {
   const db = createAdminClient();
   const { data, error } = await db.from("orders").select(
-    "id,reference,created_at,customer_user_id,customer_name,customer_email,customer_phone,fulfillment,address,commune,customer_note,total,payment_status,public_tracking_token,restaurant_orders(id,restaurant_id,status,subtotal,delivery_fee,restaurant:restaurants(name,email,members:restaurant_members(role,user_id)),items:order_items(product_name,quantity,options,line_total))",
+    "id,reference,created_at,customer_user_id,customer_name,customer_email,customer_phone,fulfillment,address,commune,customer_note,total,payment_method,payment_status,public_tracking_token,restaurant_orders(id,restaurant_id,status,subtotal,delivery_fee,payment_status,restaurant:restaurants(name,email,members:restaurant_members(role,user_id)),items:order_items(product_name,quantity,options,line_total))",
   ).eq("id", orderId).maybeSingle();
   if (error) {
     console.error("[email] order_read_failed", { code: error.code });
@@ -94,7 +94,7 @@ function base(order: NonNullable<Awaited<ReturnType<typeof orderData>>>): OrderE
     reference: order.reference, orderId: order.id,
     total: order.total, fulfillment: order.fulfillment, zone: order.commune ?? undefined,
     address: order.address ?? undefined, instructions: order.customer_note ?? undefined,
-    paymentStatus: order.payment_status, trackingToken: order.public_tracking_token,
+    paymentMethod: order.payment_method as 'wave'|'cash', paymentStatus: order.payment_status, trackingToken: order.public_tracking_token,
     restaurants: (order.restaurant_orders ?? []).map((sub) => one(sub.restaurant)?.name).filter((name): name is string => Boolean(name)),
     items: (order.restaurant_orders ?? []).flatMap((sub) => itemRows(sub.items)),
   };
@@ -123,6 +123,21 @@ export async function sendOrderCreatedNotifications(orderId: string) {
   await Promise.all([
     send({ key: `order-received:${order.id}`, type: "customer_order_received", to: order.customer_email, orderId: order.id, userId: order.customer_user_id ?? undefined, template: orderReceivedTemplate(input) }),
     send({ key: `admin-order:${order.id}`, type: "admin_order_requires_review", to: settings.adminRecipient, orderId: order.id, template: adminOrderTemplate(input) }),
+  ]);
+}
+export async function sendCashOrderNotifications(orderId: string) {
+  const order = await orderData(orderId);
+  if (!order || order.payment_method !== "cash") return;
+  const input = base(order);
+  const settings = await emailSettings(createAdminClient());
+  await Promise.all([
+    send({ key: `order-received:${order.id}`, type: "customer_order_received", to: order.customer_email, orderId: order.id, userId: order.customer_user_id ?? undefined, template: orderReceivedTemplate(input) }),
+    send({ key: `admin-order:${order.id}`, type: "admin_order_requires_review", to: settings.adminRecipient, orderId: order.id, template: adminOrderTemplate(input) }),
+    ...(order.restaurant_orders ?? []).map(async (sub) => {
+      const restaurant = one(sub.restaurant);
+      const subInput = { ...input, restaurantOrderId: sub.id, restaurantName: restaurant?.name, paymentStatus: sub.payment_status, items: itemRows(sub.items), total: (sub.subtotal ?? 0) + (sub.delivery_fee ?? 0) };
+      return send({ key: `vendor-new-order:${sub.id}`, type: "vendor_new_order", to: await vendorEmail(sub), orderId: order.id, restaurantOrderId: sub.id, template: vendorNewOrderTemplate(subInput) });
+    }),
   ]);
 }
 export async function sendPaymentConfirmedNotifications(orderId: string) {
@@ -154,7 +169,13 @@ export async function retryEmailEvent(eventId: string) {
   const { data } = await db.from("email_events").select("event_type,order_id,restaurant_order_id").eq("id", eventId).maybeSingle();
   if (!data) return;
   if (["customer_order_received", "admin_order_requires_review"].includes(data.event_type) && data.order_id) return sendOrderCreatedNotifications(data.order_id);
-  if (["customer_payment_confirmed", "vendor_new_order"].includes(data.event_type) && data.order_id) return sendPaymentConfirmedNotifications(data.order_id);
+  if (data.event_type === "customer_payment_confirmed" && data.order_id) return sendPaymentConfirmedNotifications(data.order_id);
+  if (data.event_type === "vendor_new_order" && data.order_id) {
+    const order = await orderData(data.order_id);
+    return order?.payment_method === "cash"
+      ? sendCashOrderNotifications(data.order_id)
+      : sendPaymentConfirmedNotifications(data.order_id);
+  }
   if (data.event_type === "customer_order_status" && data.restaurant_order_id) {
     const { data: event } = await db.from("order_status_events").select("to_status").eq("restaurant_order_id", data.restaurant_order_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (event) return sendOrderStatusNotification(data.restaurant_order_id, event.to_status);

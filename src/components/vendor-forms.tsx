@@ -22,7 +22,7 @@ export function ActionForm({
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   return (
-    <form action={formAction} className={className}>
+    <form action={formAction} className={className} aria-busy={pending}>
       {children}
       {state.error ? (
         <div className="form-feedback error" role="alert">
@@ -63,6 +63,7 @@ export function SubmitButton({
       type="submit"
       className={className}
       disabled={pending}
+      aria-busy={pending}
       name={name}
       value={value}
       onClick={(event) => {
@@ -222,6 +223,7 @@ export type EditableOptionGroup = {
   type: OptionType;
   required: boolean;
   multiple: boolean;
+  maxChoices?: number | null;
   options: Array<{ name: string; price: number }>;
 };
 export function ProductOptionsEditor({
@@ -294,6 +296,8 @@ function OptionGroup({
   const meta = optionMeta[type];
   const [name, setName] = useState("");
   const [price, setPrice] = useState(0);
+  const [limited, setLimited] = useState(Boolean(initial?.maxChoices));
+  const [maximum, setMaximum] = useState(initial?.maxChoices ?? 2);
   return (
     <div className="option-builder">
       <div className="option-builder-head">
@@ -304,28 +308,10 @@ function OptionGroup({
           </p>
         </div>
         <div className="simple-rules">
-          <label>
-            Le client doit-il choisir ?{" "}
-            <select
-              name={`${type}_required`}
-              defaultValue={(initial?.required ?? meta.required) ? "yes" : "no"}
-            >
-              <option value="yes">Oui</option>
-              <option value="no">Non</option>
-            </select>
-          </label>
-          <label>
-            Combien peut-il choisir ?{" "}
-            <select
-              name={`${type}_multiple`}
-              defaultValue={
-                (initial?.multiple ?? type === "supplement") ? "yes" : "no"
-              }
-            >
-              <option value="no">1</option>
-              <option value="yes">Plusieurs</option>
-            </select>
-          </label>
+          <input type="hidden" name={`${type}_required`} value="no" />
+          <input type="hidden" name={`${type}_multiple`} value="yes" />
+          <label className="check-row"><input type="checkbox" name={`${type}_limit_enabled`} checked={limited} onChange={event=>setLimited(event.target.checked)} />Limiter le nombre de choix</label>
+          {limited ? <label>Maximum de choix <input type="number" name={`${type}_max_choices`} min="1" max="50" value={maximum} onChange={event=>setMaximum(Math.max(1,Number(event.target.value)||1))} /></label> : null}
         </div>
       </div>
       <div className="option-add">

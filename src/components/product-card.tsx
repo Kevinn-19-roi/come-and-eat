@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useState } from 'react';
 import type { Product } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import { useCart } from './cart-provider';
@@ -11,6 +12,7 @@ import { useToast } from './toast-provider';
 export function ProductCard({ product, featured = false, favorite = false }: { product: Product; featured?: boolean; favorite?: boolean }) {
   const cart = useCart();
   const toast = useToast();
+  const [adding, setAdding] = useState(false);
   const orderable = product.available && product.restaurantCanOrder !== false;
   return <article className={`product-card ${featured ? 'featured' : ''}`}>
     <Link href={`/menu/${product.slug}`} className="product-image">
@@ -21,6 +23,6 @@ export function ProductCard({ product, featured = false, favorite = false }: { p
     <div className="product-copy"><div>
       {product.restaurantName ? <Link href={`/restaurants/${product.restaurantSlug}`} className="product-restaurant">{product.restaurantName}</Link> : null}
       <h3><Link href={`/menu/${product.slug}`}>{product.name}</Link></h3><p>{product.description}</p>
-    </div><div className="product-bottom"><strong className="premium-price">{formatPrice(product.price)}</strong>{product.optionGroupIds.length && orderable ? <Link className="icon-btn" href={`/menu/${product.slug}`} aria-label={`Personnaliser ${product.name}`}><span>Personnaliser</span></Link> : <button className="icon-btn" disabled={!orderable} onClick={() => { cart.add(product); toast(`${product.name} ajouté au panier`); }} aria-label={`Ajouter ${product.name} au panier`}><span aria-hidden>+</span><span>{!product.available ? 'Indisponible' : product.restaurantCanOrder === false ? 'Fermé' : 'Ajouter'}</span></button>}</div></div>
+    </div><div className="product-bottom"><strong className="premium-price">{formatPrice(product.price)}</strong>{product.optionGroupIds.length && orderable ? <Link className="icon-btn" href={`/menu/${product.slug}`} aria-label={`Personnaliser ${product.name}`}><span>Personnaliser</span></Link> : <button className="icon-btn" disabled={!orderable||adding} aria-busy={adding} onClick={() => { setAdding(true); cart.add(product); toast(`${product.name} ajouté au panier`); window.setTimeout(()=>setAdding(false),450); }} aria-label={`Ajouter ${product.name} au panier`}><span aria-hidden>{adding?'·':'+'}</span><span>{adding?'Ajout…':!product.available ? 'Indisponible' : product.restaurantCanOrder === false ? 'Fermé' : 'Ajouter'}</span></button>}</div></div>
   </article>;
 }

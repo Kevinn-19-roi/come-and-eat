@@ -14,14 +14,15 @@ export function FavoriteButton({ restaurantId, productId, initial = false }: { r
     aria-label={active ? 'Retirer des favoris' : 'Ajouter aux favoris'}
     aria-pressed={active}
     disabled={pending}
-    onClick={() => startTransition(async () => {
+    onClick={() => { const previous=active; setActive(!previous); startTransition(async () => {
       const result = await toggleFavorite({ restaurantId, productId });
       if (result.loginRequired) {
+        setActive(previous);
         const next = encodeURIComponent(window.location.pathname);
         router.push(`/login?next=${next}`);
         return;
       }
-      if (result.ok) setActive(result.active);
-    })}
+      if (result.ok) setActive(result.active); else setActive(previous);
+    })}}
   ><span aria-hidden>{active ? '♥' : '♡'}</span></button>;
 }

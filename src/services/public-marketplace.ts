@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { marketplaceRepositories } from '@/services/repositories';
 
@@ -18,7 +19,7 @@ export async function getFavoriteIds() {
   };
 }
 
-export async function getRestaurantPage(slug: string) {
+export const getRestaurantPage = cache(async function getRestaurantPage(slug: string) {
   const restaurant = await marketplaceRepositories.restaurantRepository.getBySlug(slug);
   if (!restaurant) return null;
   const [products, promotions, favorites] = await Promise.all([
@@ -32,7 +33,7 @@ export async function getRestaurantPage(slug: string) {
     promotions: promotions.filter(item => !item.restaurantId || item.restaurantId === restaurant.id),
     favorites,
   };
-}
+});
 
 export async function getAlreadyOrderedProducts(limit = 8) {
   const db = await createClient();

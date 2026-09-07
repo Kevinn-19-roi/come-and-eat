@@ -31,9 +31,9 @@ async function saveGroups(
     if (!options.length) continue;
     const defaults =
       type === "accompaniment"
-        ? { name: "Accompagnements", required: false, min: 0, max: 1 }
+        ? { name: "Accompagnements", required: false, min: 0, max: null }
         : type === "drink"
-          ? { name: "Boissons", required: false, min: 0, max: 1 }
+          ? { name: "Boissons", required: false, min: 0, max: null }
           : { name: "Suppléments", required: false, min: 0, max: null };
     const { data: group, error } = await db
       .from("product_option_groups")
@@ -46,8 +46,9 @@ async function saveGroups(
           : defaults.required,
         min_choices:
           value(form, `${type}_required`) === "yes" ? 1 : defaults.min,
-        max_choices:
-          value(form, `${type}_multiple`) === "yes" ? null : defaults.max,
+        max_choices: form.get(`${type}_limit_enabled`) === "on"
+          ? Math.max(1, Number(value(form, `${type}_max_choices`)) || 1)
+          : defaults.max,
       })
       .select("id")
       .single();

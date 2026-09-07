@@ -8,7 +8,7 @@ import { PasswordField } from '@/components/password-field';
 
 function Submit({ signup }: { signup?: boolean }) {
   const { pending } = useFormStatus();
-  return <button className="btn btn-dark auth-submit" disabled={pending}>{pending ? 'Un instant…' : signup ? 'Créer mon compte' : 'Se connecter'}</button>;
+  return <button className="btn btn-dark auth-submit" disabled={pending} aria-busy={pending}>{pending ? signup ? 'Création…' : 'Connexion…' : signup ? 'Créer mon compte' : 'Se connecter'}</button>;
 }
 
 export function PublicAuthForm({ mode, next = '' }: { mode: 'login' | 'signup'; next?: string }) {

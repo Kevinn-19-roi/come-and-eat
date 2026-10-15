@@ -31,7 +31,6 @@ export async function updateRestaurantAdmin(form: FormData) {
     delivery_available: checked(form, "delivery_available"),
     pickup_available: checked(form, "pickup_available"),
     operating_status: value(form, "operating_status"),
-    validation_status: value(form, "validation_status"),
   };
   const { error } = await db.from("restaurants").update(payload).eq("id", id);
   if (error) throw error;
@@ -55,11 +54,26 @@ export async function setRestaurantState(form: FormData) {
   const db = await adminDb();
   const id = value(form, "id");
   const action = value(form, "action");
+  if (!["suspend", "restore", "approve", "pause", "open", "archive", "unarchive"].includes(action)) throw new Error("INVALID_RESTAURANT_ACTION");
+  const administrative = ["suspend", "restore", "approve"].includes(action);
+  if (administrative && value(form, "confirmed") !== "yes") throw new Error("CONFIRMATION_REQUIRED");
+  const reason = value(form, "reason");
+  if (reason.length > 1000) throw new Error("INVALID_SUSPENSION_REASON");
+  const current = await db.from("restaurants").select("validation_status,is_official,archived_at").eq("id", id).maybeSingle();
+  if (current.error) throw current.error;
+  if (!current.data || current.data.is_official) throw new Error("RESTAURANT_STATE_NOT_UPDATED");
+  const targetStatus = action === "suspend" ? "suspended" : "approved";
+  if (administrative && current.data.validation_status === targetStatus) redirect(`/admin/restaurants/${id}?saved=${action}`);
+  if (administrative && (current.data.archived_at || current.data.validation_status !== (action === "suspend" ? "approved" : action === "restore" ? "suspended" : "pending_review"))) throw new Error("INVALID_RESTAURANT_TRANSITION");
+  if (administrative) {
+    const audit = await db.from("restaurant_validation_events").select("id").eq("restaurant_id", id).limit(1);
+    if (audit.error) throw new Error("RESTAURANT_AUDIT_UNAVAILABLE");
+  }
   const payload =
     action === "suspend"
-      ? { validation_status: "suspended" }
-      : action === "approve"
-        ? { validation_status: "approved" }
+      ? { validation_status: "suspended", suspension_reason: reason || null }
+      : action === "approve" || action === "restore"
+        ? { validation_status: "approved", suspension_reason: null }
         : action === "pause"
           ? { operating_status: "paused" }
           : action === "open"
@@ -75,6 +89,7 @@ export async function setRestaurantState(form: FormData) {
     .update(payload)
     .eq("id", id)
     .eq("is_official", false)
+    .eq("validation_status", current.data.validation_status)
     .select("id")
     .maybeSingle();
   if (error) throw error;

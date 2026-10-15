@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminHeader } from "@/components/admin-ui";
 import { requireAdmin } from "@/lib/auth/admin";
+import { createClient } from "@/lib/supabase/server";
 import {
   getAdminRestaurant,
   getAdminUsers,
@@ -42,6 +43,8 @@ export default async function Page({
   ]);
   if (!details) notFound();
   const { restaurant } = details;
+  const db = await createClient();
+  const {data:administrativeHistory,error:auditError} = await db.from('restaurant_validation_events').select('id,previous_status,new_status,actor_role,reason,created_at,actor:profiles!actor_id(display_name)').eq('restaurant_id',id).order('created_at',{ascending:false}).limit(25);
   return (
     <>
       <AdminHeader
@@ -55,25 +58,28 @@ export default async function Page({
       />
       <div className="admin-state-bar">
         <span className="vendor-badge">
-          {validationLabels[restaurant.validation_status]}
+          Statut administratif : {validationLabels[restaurant.validation_status]}
         </span>
         <span className="vendor-badge">
-          {operationLabels[restaurant.operating_status]}
+          Activité : {operationLabels[restaurant.operating_status]}
         </span>
-        {!restaurant.is_official ? (
+        {!restaurant.is_official && !auditError ? (
           <>
-            <form action={setRestaurantState}>
+            {restaurant.validation_status === 'approved' ? <form action={setRestaurantState}>
               <input type="hidden" name="id" value={id} />
-              <button className="btn btn-danger" name="action" value="suspend">
+              <input type="hidden" name="confirmed" value="yes" />
+              <label className="field"><span>Motif de suspension (facultatif)</span><textarea name="reason" maxLength={1000} rows={2}/></label>
+              <SubmitButton className="btn btn-danger" name="action" value="suspend" pendingLabel="Suspension…" confirmMessage={`Suspendre ${restaurant.name} ? Son espace vendeur et les nouvelles commandes seront bloqués. Ses données seront conservées.`}>
                 Suspendre
-              </button>
-            </form>
-            <form action={setRestaurantState}>
+              </SubmitButton>
+            </form> : null}
+            {['suspended','pending_review'].includes(restaurant.validation_status) ? <form action={setRestaurantState}>
               <input type="hidden" name="id" value={id} />
-              <button className="btn btn-outline" name="action" value="approve">
-                Réactiver
-              </button>
-            </form>
+              <input type="hidden" name="confirmed" value="yes" />
+              <SubmitButton className="btn btn-outline" name="action" value={restaurant.validation_status === 'suspended' ? 'restore' : 'approve'} pendingLabel="Validation…" confirmMessage={`Confirmer pour ${restaurant.name} ? La pause et les horaires seront conservés.`}>
+                {restaurant.validation_status === 'suspended' ? 'Lever la suspension' : 'Approuver le restaurant'}
+              </SubmitButton>
+            </form> : null}
             <form action={setRestaurantState}>
               <input type="hidden" name="id" value={id} />
               <button
@@ -91,14 +97,19 @@ export default async function Page({
           </>
         ) : null}
       </div>
+      {auditError ? <p className="vendor-alert danger">Les actions administratives attendent l’activation de leur historique sécurisé. Aucun statut administratif ne sera modifié depuis cette fiche avant cette activation.</p> : null}
+      {restaurant.validation_status === 'suspended' ? <p className="vendor-alert danger">Suspension administrative : espace vendeur et nouvelles commandes bloqués. Lever la suspension ne retire pas la pause volontaire ni les horaires de fermeture.</p> : null}
+      {restaurant.validation_status === 'suspended' && restaurant.suspension_reason ? <p>Motif : {restaurant.suspension_reason}</p> : null}
+      <section className="admin-card"><h2>Historique administratif</h2>{administrativeHistory?.length ? administrativeHistory.map(event=>{const actor=Array.isArray(event.actor)?event.actor[0]:event.actor;return <p key={event.id}><strong>{validationLabels[event.previous_status]} → {validationLabels[event.new_status]}</strong><br/>{new Date(event.created_at).toLocaleString('fr-FR',{timeZone:'Africa/Abidjan'})} · {actor?.display_name || (event.actor_role==='super_admin'?'Super administrateur':event.actor_role==='admin'?'Administrateur':'Opération système')}{event.reason?<><br/>Motif : {event.reason}</>:null}</p>;}):<p>Les nouvelles décisions apparaîtront ici. Les anciennes suspensions n’ont pas été journalisées ; aucun historique n’est inventé.</p>}</section>
       {saved ? (
         <div className="form-feedback success" role="status">
           {saved?.startsWith('member-')
             ? saved==='member-remove'?'Membre retiré du restaurant.':'Membre enregistré.'
             : saved === "suspend"
             ? "Restaurant suspendu."
-            : saved === "approve"
-              ? "Restaurant réactivé."
+            : saved === "restore"
+              ? "Suspension levée. La pause et les horaires ont été conservés."
+              : saved === "approve" ? "Restaurant approuvé."
               : saved === "pause"
                 ? "Restaurant mis en pause."
                 : "Les commandes ont repris."}
@@ -196,16 +207,8 @@ export default async function Page({
             </label>
             <label className="field">
               <span>Validation</span>
-              <select
-                name="validation_status"
-                defaultValue={restaurant.validation_status}
-              >
-                <option value="draft">Brouillon</option>
-                <option value="pending_review">À valider</option>
-                <option value="approved">Validé</option>
-                <option value="rejected">Refusé</option>
-                <option value="suspended">Suspendu</option>
-              </select>
+              <span>{validationLabels[restaurant.validation_status]}</span>
+              <small>Utilisez les actions administratives confirmées en haut de la fiche.</small>
             </label>
           </div>
           <fieldset className="cuisine-choices">

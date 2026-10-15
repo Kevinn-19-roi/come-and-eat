@@ -15,8 +15,8 @@
     "test:seller-application": "node scripts/test-seller-application-review.mjs",
     "test:admin": "node scripts/test-admin-management.mjs",
     "test:qa-regressions": "node scripts/test-qa-regressions.mjs",
-    "test:payments": "node scripts/test-payments.mjs"
-    ,"test:members-orders": "node scripts/test-members-and-order-transitions.mjs",
+    "test:payments": "node scripts/test-payments.mjs",
+    "test:members-orders": "node scripts/test-members-and-order-transitions.mjs",
     "test:sprint-6-1": "node scripts/test-sprint-6-1.mjs",
     "test:delivery": "node scripts/test-sprint-6-1.mjs",
     "test:order-tracking": "node scripts/test-sprint-6-1.mjs",
@@ -39,6 +39,7 @@
     "test:ci": "npm test && npm run test:payments && npm run test:sprint-6-1 && npm run test:restaurant-hours-checkout && npm run test:emails && npm run test:cash-payments && npm run test:sharing-multiselect"
   },
   "dependencies": {
+    "@fontsource-variable/manrope": "5.3.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
     "next": "16.3.1",

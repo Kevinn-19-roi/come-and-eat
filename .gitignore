@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/artifacts/
+/.audit-backup/
+/Image Codex 18 août 2026, 01_33_29.png
 
 # next.js
 /.next/

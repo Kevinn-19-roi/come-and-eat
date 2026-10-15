@@ -8,6 +8,7 @@ export function RestaurantCard({ restaurant, favorite = false }: { restaurant: R
   return <article className="restaurant-card">
     <Link href={`/restaurants/${restaurant.slug}`} className="restaurant-cover">
       {restaurant.coverUrl ? <Image src={restaurant.coverUrl} alt={`Cuisine de ${restaurant.name}`} fill sizes="(max-width: 700px) 92vw, 32vw" /> : <span className="restaurant-cover-placeholder">{restaurant.name.slice(0, 1)}</span>}
+      <span className={`restaurant-cover-status ${status === 'Ouvert' ? 'open' : ''}`}><i aria-hidden="true" />{status}</span>
     </Link>
     <FavoriteButton restaurantId={restaurant.id} initial={favorite} />
     <div className="restaurant-card-body">
@@ -16,6 +17,7 @@ export function RestaurantCard({ restaurant, favorite = false }: { restaurant: R
         <div><h3><Link href={`/restaurants/${restaurant.slug}`}>{restaurant.name}</Link></h3><p>{(restaurant.cuisineTypes ?? []).slice(0, 3).map(item => item.name).join(' · ') || restaurant.commune || 'Abidjan'}</p></div>
       </div>
       <div className="restaurant-facts"><span className={status === 'Ouvert' ? 'open' : ''}>{status}</span><span>{restaurant.averagePrepMinutes} min</span>{restaurant.deliveryAvailable ? <span>Livraison</span> : null}{restaurant.pickupAvailable ? <span>Retrait</span> : null}</div>
+      <Link className="restaurant-explore" href={`/restaurants/${restaurant.slug}`}>Découvrir la carte <span aria-hidden="true">↗</span></Link>
     </div>
   </article>;
 }

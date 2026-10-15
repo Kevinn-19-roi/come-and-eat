@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import ts from 'typescript';
+const source=await readFile('src/lib/auth/vendor.ts','utf8');
+let fixture;
+const db={auth:{getUser:async()=>({data:{user:{id:'qa'}}})},from:table=>({select(){return this;},eq(){return table==='profiles'?{maybeSingle:async()=>({data:{role:'vendor'},error:fixture.error})}:Promise.resolve({data:fixture.members,error:fixture.error});}})};
+const compiled={exports:{}};
+const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+new Function('exports','require',js)(compiled.exports,name=>{
+ if(name==='server-only')return {};
+ if(name==='react')return {cache:fn=>fn};
+ if(name==='next/headers')return {cookies:async()=>({get:()=>undefined})};
+ if(name==='next/navigation')return {redirect:path=>{throw new Error(`REDIRECT:${path}`);}};
+ if(name.includes('supabase/server'))return {createClient:async()=>db};
+ throw new Error(name);
+});
+const member=(validation,operating)=>[{role:'owner',restaurant:{id:'qa-restaurant',name:'QA',slug:'qa',validation_status:validation,operating_status:operating}}];
+fixture={members:member('approved','paused')};assert.equal((await compiled.exports.requireVendor()).restaurant.operatingStatus,'paused');
+fixture={members:member('suspended','open')};await assert.rejects(()=>compiled.exports.requireVendor(),/status=suspended/);
+fixture={members:[]};await assert.rejects(()=>compiled.exports.requireVendor(),/REDIRECT:\/vendor\/application$/);
+fixture={members:member('approved','open'),error:{code:'QA_READ_FAILED'}};await assert.rejects(()=>compiled.exports.requireVendor(),/VENDOR_CONTEXT_FAILED/);
+const page=await readFile('src/app/vendor/application/page.tsx','utf8');assert.match(page,/validationStatus==='suspended'/);
+console.log('Contrôle vendeur exécuté avec mocks : pause autorisée, suspension bloquée, non-membre redirigé, panne de lecture refusée. Aucune écriture Production.');

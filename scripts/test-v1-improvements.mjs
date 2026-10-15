@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import ts from 'typescript';
+const load=async file=>{
+ const source=await readFile(file,'utf8');
+ const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ const result={exports:{}};
+ new Function('exports','require',js)(result.exports,()=>({createClient:()=>{throw new Error('Unexpected database access');}}));
+ return result.exports;
+};
+const {csvCell,createCsv}=await load('src/lib/csv.ts');
+for(const value of ['=1+1','+2250700000000','-1','@SUM(A1)',' \t=HYPERLINK("x")'])assert.ok(csvCell(value).startsWith('"\''));
+assert.equal(csvCell('Alloco; épicé'),'"Alloco; épicé"');
+assert.equal(csvCell('A"B\nC'),'"A""B C"');
+assert.ok(createCsv(['Nom'],[['Élodie']]).startsWith('\uFEFF'));
+const {uploadMedia}=await load('src/services/media-upload.ts');
+for(const [name,type] of [['photo.HEIC',''],['photo.heif','image/heif']])await assert.rejects(()=>uploadMedia({name,type,size:1}),/JPEG ou PNG/);
+await assert.rejects(()=>uploadMedia({name:'document.pdf',type:'application/pdf',size:1}),/Choisissez une image/);
+await assert.rejects(()=>uploadMedia({name:'photo.jpg',type:'image/jpeg',size:11*1024*1024}),/10 Mo/);
+const cart=await readFile('src/components/mobile-cart-bar.tsx','utf8');
+assert.match(cart,/\{count,subtotal\}=useCart/);assert.match(cart,/Sous-total/);assert.doesNotMatch(cart,/path==='\/checkout'/);
+const menu=await readFile('src/components/menu-catalog.tsx','utf8');assert.match(menu,/aria-pressed/);assert.match(menu,/prefers-reduced-motion/);
+console.log('Lot V1 : CSV exécuté (accents, formules, BOM), refus upload HEIC/taille/format exécutés sans réseau, contrats panier/catégories vérifiés. Pas une recette Storage réelle.');

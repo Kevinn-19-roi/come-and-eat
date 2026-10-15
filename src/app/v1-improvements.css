@@ -1,0 +1,21 @@
+.discovery-cart-bar,.discovery-cart-space{display:none}
+.footer-signature .bloop-credit{display:inline-flex;align-items:center;gap:8px}
+.footer-signature .bloop-credit img{width:36px;height:36px;object-fit:contain;border-radius:6px}
+/* Desktop only: supply the missing pseudo-element without changing mobile. */
+@media(min-width:1101px){
+ .storefront .hero-food-frame::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(3,25,18,.86) 0%,rgba(3,25,18,.68) 32%,rgba(3,25,18,.28) 56%,transparent 78%)}
+ .storefront .marketplace-hero-copy .section-kicker{color:#f3ead3!important}
+ .storefront .marketplace-hero-copy>p:not(.section-kicker){color:#f1f6f2}
+}
+.filters .pill.active{background:#0b513c;color:#fff;border-color:#0b513c;box-shadow:inset 0 -3px 0 #f59c35}
+.discovery-cart-bar a:focus-visible{outline:3px solid #f59c35;outline-offset:3px}
+.checkout-summary .promo-field label{color:#143b2e}
+.checkout-summary .muted{color:#cbded7}
+.checkout-hero .section-kicker{color:#b8d7c4}
+.checkout-summary .summary-cta:disabled{background:#60796f;color:#fff;cursor:not-allowed}
+@media(max-width:767px){
+ .discovery-cart-space{display:block;height:calc(108px + env(safe-area-inset-bottom,0px))}
+ .discovery-cart-bar{display:flex;position:fixed;z-index:40;bottom:0;left:0;right:0;gap:12px;align-items:center;justify-content:space-between;background:#0b513c;color:white;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));border-radius:20px 20px 0 0;box-shadow:0 -4px 20px #102b2014}
+ .discovery-cart-bar>div{min-width:0;display:grid;gap:4px}.discovery-cart-bar strong{font-size:14px}.discovery-cart-bar span{font-size:12px}
+ .discovery-cart-bar a{flex-shrink:0;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;border-radius:12px;background:#fff;color:#0b513c;font-size:13px;font-weight:800}
+}

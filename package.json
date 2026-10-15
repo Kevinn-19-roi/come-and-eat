@@ -36,7 +36,7 @@
     "test:auth-email": "node scripts/test-emails.mjs",
     "test:notification-idempotency": "node scripts/test-emails.mjs",
     "test:notification-idempotency:live": "node scripts/test-email-idempotency-live.mjs",
-    "test:ci": "npm test && npm run test:payments && npm run test:sprint-6-1 && npm run test:restaurant-hours-checkout && npm run test:emails && npm run test:cash-payments && npm run test:sharing-multiselect && node scripts/test-vendor-image-preview.mjs && node scripts/test-product-thumbnails.mjs && node scripts/test-public-image-policy.mjs"
+    "test:ci": "npm test && npm run test:payments && npm run test:sprint-6-1 && npm run test:restaurant-hours-checkout && npm run test:emails && npm run test:cash-payments && npm run test:sharing-multiselect && node scripts/test-vendor-image-preview.mjs && node scripts/test-product-thumbnails.mjs && node scripts/test-public-image-policy.mjs && node scripts/test-v1-cms-users.mjs"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "5.3.0",

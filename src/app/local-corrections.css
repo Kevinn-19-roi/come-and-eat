@@ -1,0 +1,15 @@
+.admin-export-row { display: flex; justify-content: flex-end; margin: -8px 0 16px; }
+.statistics-period-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.statistics-period-list li { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-top: 1px solid #e4e9e5; font-size: 12px; }
+.restaurant-contact-strip { background: #eef5f1; border-bottom: 1px solid #dbe6df; }
+.restaurant-contact-strip > div { min-height: 92px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-block: 16px; }
+.restaurant-contact-strip > div > div { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.restaurant-contact-strip strong, .restaurant-contact-strip span { display: block; }
+.restaurant-contact-strip span { margin-top: 4px; color: #607068; font-size: 12px; }
+@media (max-width: 700px) {
+  .admin-export-row, .admin-export-row .btn { width: 100%; }
+  .restaurant-contact-strip > div { align-items: stretch; flex-direction: column; }
+  .restaurant-contact-strip > div > div:last-child { display: grid; grid-template-columns: 1fr; }
+  .restaurant-contact-strip .btn { width: 100%; text-align: center; }
+  .statistics-period-list li { flex-direction: column; gap: 3px; }
+}

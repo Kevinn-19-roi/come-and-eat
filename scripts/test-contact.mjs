@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+import {readFile} from 'node:fs/promises';
+const source=await readFile('src/lib/contact-validation.ts','utf8');
+const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
+const {validateContact}=await import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`);
+const form=new FormData();
+for(const [k,v] of Object.entries({name:'Awa Koné',email:'awa@example.invalid',phone:'+225 07 00 00 00 00',message:'Bonjour <script>alert(1)</script>'}))form.set(k,v);
+const result=validateContact(form);
+assert.ok(result.html.includes('&lt;script&gt;'));
+assert.ok(!result.html.includes('<script>'));
+assert.ok(result.text.includes('Awa Koné'));
+form.set('email','bad\r\nBcc:x@example.com');assert.throws(()=>validateContact(form));
+form.set('email','awa@example.invalid');form.set('message','a');assert.throws(()=>validateContact(form));
+form.set('message','a'.repeat(4001));assert.throws(()=>validateContact(form));
+console.log('Contact: validation, limites, accents, échappement HTML et injection email testés sans envoi.');

@@ -1,3 +1,4 @@
+import './require-isolated-database.mjs';
 import assert from 'node:assert/strict';import nextEnv from '@next/env';import {createClient} from '@supabase/supabase-js';
 nextEnv.loadEnvConfig(process.cwd());const url=process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/rest\/v1\/?$/,''),key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,service=process.env.SUPABASE_SERVICE_ROLE_KEY;assert.ok(url&&key&&service,'Variables Supabase manquantes.');
 const root=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}}),run=crypto.randomUUID().slice(0,8),password=`CeA!${crypto.randomUUID()}9a`;let userId,restaurantId,productId,orderId,zoneId;let previousCommission;

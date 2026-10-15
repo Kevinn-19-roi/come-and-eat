@@ -37,6 +37,15 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Local QA, safety copies and unrelated owner file: never publish.
+/artifacts/
+/.audit-backup/
+/backups/
+*.dump
+*.backup
+*.age
+/Image Codex 18 août 2026, 01_33_29.png
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

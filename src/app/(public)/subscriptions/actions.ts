@@ -1,0 +1,5 @@
+'use server';
+import {createClient} from '@/lib/supabase/server';
+import {revalidatePath} from 'next/cache';
+export async function cancelSubscription(_state:object,form:FormData){const db=await createClient();const {error}=await db.rpc('cancel_subscription',{target:String(form.get('id'))});if(error)return {error:'Une souscription déjà réglée ou avec des commandes en cours nécessite l’intervention de Come & Eat. Aucun remboursement automatique n’a été effectué.'};revalidatePath('/subscriptions');return {ok:true,message:'Souscription annulée. Son historique est conservé.'};}
+export async function subscribe(_state:object,form:FormData){const db=await createClient();const {error}=await db.rpc('subscribe_to_plan',{target_plan:String(form.get('plan')),request_key:String(form.get('key'))});if(error)return {error:'Cette formule n’est pas disponible ou votre session a expiré.'};revalidatePath('/subscriptions');return {ok:true,message:'Souscription enregistrée. Elle sera activée après vérification du paiement par Come & Eat.'}}

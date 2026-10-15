@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { marketplaceRepositories } from '@/services/repositories';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = 'https://come-and-eat.vercel.app';
+  const base = 'https://comeandeat.org';
   const [restaurants, products] = await Promise.all([
     marketplaceRepositories.restaurantRepository.listPublic().catch(() => []),
     marketplaceRepositories.productRepository.listPublic().catch(() => []),

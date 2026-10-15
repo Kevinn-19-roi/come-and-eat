@@ -8,6 +8,7 @@ export type PublicUserContext = {
   displayName: string;
   role: 'customer' | 'vendor' | 'admin' | 'super_admin';
   hasRestaurant: boolean;
+  platformPermissions?:string[];
 };
 
 export const getPublicUser = cache(async (): Promise<PublicUserContext | null> => {
@@ -22,11 +23,13 @@ export const getPublicUser = cache(async (): Promise<PublicUserContext | null> =
     console.error('[public-auth] context_failed', { profile: profileError?.code, members: memberError?.code });
     return null;
   }
+  const {data:permissions}=await db.rpc('my_platform_permissions');
   return {
     id: user.id,
     email: user.email ?? '',
     displayName: profile?.display_name ?? '',
     role: (profile?.role ?? 'customer') as PublicUserContext['role'],
     hasRestaurant: (count ?? 0) > 0,
+    platformPermissions:(permissions??[]) as string[],
   };
 });

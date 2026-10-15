@@ -1,2 +1,3 @@
-import { PublicHeader } from '@/components/public-header';import { PublicFooter } from '@/components/public-footer';import {getPublicUser} from '@/lib/auth/public-user';
-export default async function PublicLayout({children}:{children:React.ReactNode}){const user=await getPublicUser();return <><PublicHeader user={user}/><main>{children}</main><PublicFooter/></>}
+import {MobileCartBar} from '@/components/mobile-cart-bar';
+import { PublicHeader } from '@/components/public-header';import { PublicFooter } from '@/components/public-footer';import {getPublicUser} from '@/lib/auth/public-user';import {getPublicSiteContent} from '@/services/site-content';
+export default async function PublicLayout({children}:{children:React.ReactNode}){const[user,content]=await Promise.all([getPublicUser(),getPublicSiteContent()]);return <div className="storefront"><PublicHeader user={user} contact={content.contact} announcement={content.announcement} hours={content.hours}/><main>{children}</main><PublicFooter/><MobileCartBar/></div>}

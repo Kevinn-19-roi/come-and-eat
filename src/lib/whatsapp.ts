@@ -13,14 +13,15 @@ type Item = { quantity: number; product_name: string; options?: Array<{ name?: s
 export function buildRestaurantOrderWhatsAppLink(input: {
   number: unknown; restaurantName: unknown; reference: unknown; customerName: unknown;
   customerPhone: unknown; fulfillment: unknown; zone: unknown; address: unknown;
-  instructions: unknown; items: Item[]; amount: number; paymentMethod?: unknown; paymentStatus: unknown;
+  instructions: unknown; items: Item[]; amount: number; paymentMethod?: unknown; paymentStatus: unknown; subscriptionCredit?: number;
 }) {
   const number = normalizeWhatsAppNumber(input.number);
   if (!number) return "";
   const items = input.items.map((item) => `• ${item.quantity}x ${item.product_name}${item.options?.length ? `\n  - ${item.options.map((option) => option.name).filter(Boolean).join("\n  - ")}` : ""}`).join("\n\n");
-  const payment = input.paymentMethod === "cash"
+  const payment = (input.subscriptionCredit??0)>0 && (input.subscriptionCredit??0)>=input.amount ? "Paiement : réglé par abonnement prépayé." : input.paymentMethod === "cash"
     ? `Paiement : Espèces — ${input.paymentStatus === "paid" ? "Encaissé" : "À encaisser"}.`
     : input.paymentStatus === "paid" ? "Paiement : Wave — Vérifié." : "Paiement : Wave — À vérifier.";
-  const message = `Bonjour ${input.restaurantName || "restaurant"},\n\nVous avez une nouvelle commande Come & Eat ✅\n\nRéférence : ${input.reference}\n\nClient : ${input.customerName}\nTéléphone : ${input.customerPhone}\n\nMode : ${input.fulfillment === "delivery" ? "Livraison" : "Retrait"}\nZone : ${input.zone || "—"}\nAdresse : ${input.address || "—"}\nInstructions : ${input.instructions || "Aucune"}\n\nCommande :\n${items}\n\nMontant : ${formatPrice(input.amount)}\n\n${payment}\n\nMerci de consulter votre espace vendeur pour traiter la commande.`;
+  const credit=(input.subscriptionCredit??0)>0?`\nDéjà réglé par abonnement : ${formatPrice(input.subscriptionCredit!)}\nSolde options/livraison : ${formatPrice(Math.max(0,input.amount-input.subscriptionCredit!))}`:"";
+  const message = `Bonjour ${input.restaurantName || "restaurant"},\n\nVous avez une nouvelle commande Come & Eat ✅\n\nRéférence : ${input.reference}\n\nClient : ${input.customerName}\nTéléphone : ${input.customerPhone}\n\nMode : ${input.fulfillment === "delivery" ? "Livraison" : "Retrait"}\nZone : ${input.zone || "—"}\nAdresse : ${input.address || "—"}\nInstructions : ${input.instructions || "Aucune"}\n\nCommande :\n${items}\n\nMontant : ${formatPrice(input.amount)}${credit}\n\n${payment}\n\nMerci de consulter votre espace vendeur pour traiter la commande.`;
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 }

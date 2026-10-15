@@ -11,6 +11,10 @@ const links = [
   ['/vendor/products', '□', 'Produits'], ['/vendor/restaurant', '⌂', 'Mon restaurant'],
   ['/vendor/media', '▧', 'Photos'], ['/vendor/hours', '◷', 'Horaires'],
   ['/vendor/promotions', '%', 'Promotions'],
+  ['/vendor/reviews', '☆', 'Avis clients'],
+  ['/vendor/planning', '◷', 'Repas programmés'],
+  ['/vendor/catering', '◇', 'Service traiteur'],
+  ['/vendor/messages', '✉', 'Messages'],
 ] as const;
 
 export function VendorShell({ children, restaurants, activeRestaurant }: { children: React.ReactNode; restaurants: VendorRestaurant[]; activeRestaurant?: VendorRestaurant }) {

@@ -102,6 +102,9 @@ export async function saveSellerApplication(
     submitted_at: submit ? new Date().toISOString() : null,
     admin_notes: null,
   };
+  const validPhone = (entry: string | null) => !entry || /^\+?[0-9 ()-]{8,24}$/.test(entry);
+  if (!validPhone(payload.phone) || !validPhone(payload.whatsapp)) return { error: "Vérifiez les numéros de téléphone indiqués." };
+  if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) return { error: "Vérifiez l’adresse e-mail professionnelle." };
   if (!payload.restaurant_name || !payload.phone)
     return {
       error: "Indiquez au minimum le nom du restaurant et le téléphone.",
@@ -204,7 +207,12 @@ export async function updateRestaurant(
     average_prep_minutes: Number(value(form, "average_prep_minutes")) || 25,
     delivery_available: checked(form, "delivery_available"),
     pickup_available: checked(form, "pickup_available"),
+    accepts_messages: checked(form, "accepts_messages"),
+    whatsapp_public: checked(form, "whatsapp_public"),
   };
+  const validProfessionalPhone = (entry: string | null) => !entry || /^\+?[0-9 ()-]{8,24}$/.test(entry);
+  if (!validProfessionalPhone(payload.phone) || !validProfessionalPhone(payload.whatsapp)) return { error: "Vérifiez les numéros de téléphone indiqués." };
+  if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) return { error: "Vérifiez l’adresse e-mail professionnelle." };
   const { error } = await db
     .from("restaurants")
     .update(payload)

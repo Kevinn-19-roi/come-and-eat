@@ -70,7 +70,7 @@ async function send(input: SendInput) {
 async function orderData(orderId: string) {
   const db = createAdminClient();
   const { data, error } = await db.from("orders").select(
-    "id,reference,created_at,customer_user_id,customer_name,customer_email,customer_phone,fulfillment,address,commune,customer_note,total,payment_method,payment_status,public_tracking_token,restaurant_orders(id,restaurant_id,status,subtotal,delivery_fee,payment_status,restaurant:restaurants(name,email,members:restaurant_members(role,user_id)),items:order_items(product_name,quantity,options,line_total))",
+    "id,reference,created_at,scheduled_for,customer_user_id,customer_name,customer_email,customer_phone,fulfillment,address,commune,customer_note,total,subscription_credit,payment_method,payment_status,public_tracking_token,restaurant_orders(id,restaurant_id,status,subtotal,delivery_fee,subscription_credit,payment_status,restaurant:restaurants(name,email,members:restaurant_members(role,user_id)),items:order_items(product_name,quantity,options,line_total))",
   ).eq("id", orderId).maybeSingle();
   if (error) {
     console.error("[email] order_read_failed", { code: error.code });
@@ -92,7 +92,7 @@ function base(order: NonNullable<Awaited<ReturnType<typeof orderData>>>): OrderE
   return {
     name: order.customer_name, customerPhone: order.customer_phone, createdAt: order.created_at,
     reference: order.reference, orderId: order.id,
-    total: order.total, fulfillment: order.fulfillment, zone: order.commune ?? undefined,
+    subscriptionCredit:order.subscription_credit,total: order.total, fulfillment: order.fulfillment, zone: order.commune ?? undefined,
     address: order.address ?? undefined, instructions: order.customer_note ?? undefined,
     paymentMethod: order.payment_method as 'wave'|'cash', paymentStatus: order.payment_status, trackingToken: order.public_tracking_token,
     restaurants: (order.restaurant_orders ?? []).map((sub) => one(sub.restaurant)?.name).filter((name): name is string => Boolean(name)),
@@ -133,9 +133,9 @@ export async function sendCashOrderNotifications(orderId: string) {
   await Promise.all([
     send({ key: `order-received:${order.id}`, type: "customer_order_received", to: order.customer_email, orderId: order.id, userId: order.customer_user_id ?? undefined, template: orderReceivedTemplate(input) }),
     send({ key: `admin-order:${order.id}`, type: "admin_order_requires_review", to: settings.adminRecipient, orderId: order.id, template: adminOrderTemplate(input) }),
-    ...(order.restaurant_orders ?? []).map(async (sub) => {
+    ...(order.scheduled_for?[]:order.restaurant_orders ?? []).map(async (sub) => {
       const restaurant = one(sub.restaurant);
-      const subInput = { ...input, restaurantOrderId: sub.id, restaurantName: restaurant?.name, paymentStatus: sub.payment_status, items: itemRows(sub.items), total: (sub.subtotal ?? 0) + (sub.delivery_fee ?? 0) };
+      const subInput = { ...input, subscriptionCredit:sub.subscription_credit,restaurantOrderId: sub.id, restaurantName: restaurant?.name, paymentStatus: sub.payment_status, items: itemRows(sub.items), total: (sub.subtotal ?? 0) + (sub.delivery_fee ?? 0) };
       return send({ key: `vendor-new-order:${sub.id}`, type: "vendor_new_order", to: await vendorEmail(sub), orderId: order.id, restaurantOrderId: sub.id, template: vendorNewOrderTemplate(subInput) });
     }),
   ]);
@@ -145,9 +145,10 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   if (!order) return;
   const input = base(order);
   await send({ key: `payment-confirmed:${order.id}`, type: "customer_payment_confirmed", to: order.customer_email, orderId: order.id, userId: order.customer_user_id ?? undefined, template: paymentConfirmedTemplate(input) });
+  if (order.scheduled_for) return; // Scheduled vendor reminders use the leased due-order queue.
   await Promise.all((order.restaurant_orders ?? []).map(async (sub) => {
     const restaurant = one(sub.restaurant);
-    const subInput = { ...input, restaurantOrderId: sub.id, restaurantName: restaurant?.name, items: itemRows(sub.items), total: (sub.subtotal ?? 0) + (sub.delivery_fee ?? 0) };
+    const subInput = { ...input, subscriptionCredit:sub.subscription_credit,restaurantOrderId: sub.id, restaurantName: restaurant?.name, items: itemRows(sub.items), total: (sub.subtotal ?? 0) + (sub.delivery_fee ?? 0) };
     return send({ key: `vendor-new-order:${sub.id}`, type: "vendor_new_order", to: await vendorEmail(sub), orderId: order.id, restaurantOrderId: sub.id, template: vendorNewOrderTemplate(subInput) });
   }));
 }
@@ -160,7 +161,7 @@ export async function sendOrderStatusNotification(restaurantOrderId: string, sta
   const sub = (order.restaurant_orders ?? []).find((item) => item.id === restaurantOrderId);
   if (!sub) return;
   const restaurant = one(sub.restaurant);
-  const input = { ...base(order), restaurantOrderId, restaurantName: restaurant?.name, items: itemRows(sub.items), total: (sub.subtotal ?? 0) + (sub.delivery_fee ?? 0) };
+  const input = { ...base(order), subscriptionCredit:sub.subscription_credit,restaurantOrderId, restaurantName: restaurant?.name, items: itemRows(sub.items), total: (sub.subtotal ?? 0) + (sub.delivery_fee ?? 0) };
   return send({ key: `order-status:${restaurantOrderId}:${status}`, type: "customer_order_status", to: order.customer_email, orderId: order.id, restaurantOrderId, userId: order.customer_user_id ?? undefined, template: lifecycleTemplate(status, input) });
 }
 

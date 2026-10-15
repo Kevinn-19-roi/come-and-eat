@@ -1,0 +1,22 @@
+import {requirePermission} from '@/lib/auth/permissions';
+import {ActionForm,SubmitButton} from '@/components/vendor-forms';
+import {confirmSubscription,configurePlan,cancelPaidSubscription} from './actions';
+export default async function Page(){
+ const {db}=await requirePermission('subscriptions.manage');
+ const [{data:plans},{data:subscriptions},{data:products},{data:eligible},{data:canConfigure},{data:balances},{data:canClose}]=await Promise.all([
+  db.from('subscription_plans').select('*').limit(100),
+  db.from('customer_subscriptions').select('id,name_snapshot,total,status,created_at').order('created_at',{ascending:false}).limit(100),
+  db.from('products').select('id,name').eq('is_archived',false).limit(300),
+  db.from('subscription_eligible_products').select('plan_id,product_id'),
+  db.rpc('has_platform_permission',{permission:'finance.configure'}),db.rpc('subscription_balances'),db.rpc('has_platform_permission',{permission:'refund.approve'}),
+ ]);
+ return <><h1>Abonnements</h1><p>Les offres restent désactivées tant que livraison, plats éligibles et conditions ne sont pas confirmés. Les encaissements d’abonnement restent distincts des commandes ordinaires.</p>
+ {plans?.map(p=><article key={p.id} className="admin-card"><h2>{p.name}</h2><p>{p.meal_count??'Volume à définir'} repas · {p.unit_price} FCFA / repas · Non publiée</p>
+ {canConfigure?<details><summary>Configurer cette formule</summary><ActionForm action={configurePlan} submitLabel="Enregistrer sans publier"><input type="hidden" name="id" value={p.id}/>
+ <label className="field"><span>Nom de la formule</span><input name="name" defaultValue={p.name} maxLength={100} required/></label>
+ <div className="form-grid"><label className="field"><span>Repas inclus (laisser vide si non défini)</span><input name="meals" type="number" min={1} max={1000} defaultValue={p.meal_count??''}/></label><label className="field"><span>Prix par repas (FCFA)</span><input name="price" type="number" min={0} max={1000000} defaultValue={p.unit_price} required/></label><label className="field"><span>Durée en jours</span><input name="duration" type="number" min={1} max={366} defaultValue={p.duration_days} required/></label></div>
+ <label className="field"><span>Conditions de livraison</span><textarea name="delivery" defaultValue={p.delivery_terms??''} maxLength={4000}/></label><label className="field"><span>Conditions d’utilisation</span><textarea name="conditions" defaultValue={p.terms??''} maxLength={4000}/></label>
+ <fieldset><legend>Plats éligibles</legend>{products?.map(product=><label className="check-row" key={product.id}><input type="checkbox" name="eligible" value={product.id} defaultChecked={eligible?.some(e=>e.plan_id===p.id&&e.product_id===product.id)}/>{product.name}</label>)}</fieldset>
+ </ActionForm></details>:null}</article>)}
+ <h2>Souscriptions</h2>{!subscriptions?.length?<p>Aucune souscription pour le moment.</p>:null}{subscriptions?.map(s=><article key={s.id} className="admin-card"><h3>{s.name_snapshot}</h3><p>{s.total} FCFA · {s.status==='pending_payment'?'Paiement à vérifier':s.status==='active'?'Actif':'À examiner'}</p>{s.status==='pending_payment'?<ActionForm action={confirmSubscription} submitLabel={false}><input type="hidden" name="id" value={s.id}/><SubmitButton pendingLabel="Confirmation…" confirmMessage="Confirmer uniquement après vérification du montant reçu sur Wave Business ?">Confirmer après vérification du paiement Wave</SubmitButton></ActionForm>:null}{balances?.filter((b:{subscription_id:string})=>b.subscription_id===s.id).map((b:{subscription_id:string;reconciliation:{receipts:number;served_value:number;prepaid_unserved:number;reserved_meals:number;consumed_meals:number;remaining_meals:number}})=><dl key={b.subscription_id}><dt>Encaissement prépayé unique</dt><dd>{b.reconciliation.receipts} FCFA</dd><dt>Repas servis / réservés / disponibles</dt><dd>{b.reconciliation.consumed_meals} / {b.reconciliation.reserved_meals} / {b.reconciliation.remaining_meals}</dd><dt>Valeur servie / prépayé restant à servir</dt><dd>{b.reconciliation.served_value} / {b.reconciliation.prepaid_unserved} FCFA</dd></dl>)}{canClose&&s.status!=='cancelled'?<ActionForm action={cancelPaidSubscription} submitLabel={false}><input type="hidden" name="id" value={s.id}/><SubmitButton confirmMessage="Clôturer cette souscription sans effectuer de remboursement ? Le reliquat restera dans l’historique." pendingLabel="Clôture…">Clôturer sans remboursement automatique</SubmitButton></ActionForm>:null}</article>)}</>;
+}

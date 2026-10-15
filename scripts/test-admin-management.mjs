@@ -1,3 +1,4 @@
+import './require-isolated-database.mjs';
 import assert from 'node:assert/strict';
 import nextEnv from '@next/env';
 import {createClient} from '@supabase/supabase-js';

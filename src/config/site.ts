@@ -6,7 +6,7 @@ export const siteConfig = {
     description: 'Cuisine généreuse préparée à la commande, disponible en livraison ou à retirer à Abidjan.',
   },
   contact: {
-    phone: '+225 07 48 99 22 11',
+    phone: '',
     email: 'bonjour@come-eat.local',
     address: 'Abidjan, Côte d’Ivoire',
   },

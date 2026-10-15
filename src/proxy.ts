@@ -1,5 +1,6 @@
 import {createServerClient} from '@supabase/ssr';
 import {NextResponse,type NextRequest} from 'next/server';
+import {v2Modules} from '@/lib/v2-modules';
 
 const supabaseUrl=process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -18,7 +19,12 @@ export async function proxy(request:NextRequest){
     if(isVendor)return response;
     const{data:profile,error:profileError}=await db.from('profiles').select('role').eq('id',user.id).maybeSingle();
     if(profileError){console.error('[admin-auth] proxy_profile_read_failed',{code:profileError.code});return NextResponse.redirect(new URL('/admin/login?error=service',request.url))}
-    if(!profile||!['admin','super_admin'].includes(profile.role))return NextResponse.redirect(new URL('/admin/login?error=acces',request.url));
+    if(!profile||!['admin','super_admin'].includes(profile.role)){
+      const destination=v2Modules.find(m=>request.nextUrl.pathname===m.href||request.nextUrl.pathname.startsWith(m.href+'/'));
+      if(!destination)return NextResponse.redirect(new URL('/account?access=denied',request.url));
+      const {data:allowed,error}=await db.rpc('has_platform_permission',{permission:destination.permission});
+      if(error||allowed!==true)return NextResponse.redirect(new URL('/account?access=denied',request.url));
+    }
     return response;
   }catch(error){console.error('[auth-proxy] unexpected_failure',{name:(error as{name?:string})?.name});return NextResponse.redirect(new URL(isVendor?loginPath:`${loginPath}?error=service`,request.url))}
 }

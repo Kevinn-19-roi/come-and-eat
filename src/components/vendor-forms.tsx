@@ -171,11 +171,11 @@ export function VendorMediaPicker({
       <label className="upload-button">
         <input
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/avif"
+          accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif,.heic,.heif"
           onChange={(event) => onFile(event.target.files?.[0])}
         />
         <span>{busy ? "Envoi…" : label}</span>
-        <small>JPG, PNG ou WebP · 10 Mo maximum</small>
+        <small>JPG, PNG, WebP ou AVIF · 10 Mo maximum. Les fichiers iCloud sont accessibles via le sélecteur Fichiers.</small>
       </label>
       {!chosen && items.length ? (
         <details className="vendor-library">
@@ -310,8 +310,30 @@ function OptionGroup({
         <div className="simple-rules">
           <input type="hidden" name={`${type}_required`} value="no" />
           <input type="hidden" name={`${type}_multiple`} value="yes" />
-          <label className="check-row"><input type="checkbox" name={`${type}_limit_enabled`} checked={limited} onChange={event=>setLimited(event.target.checked)} />Limiter le nombre de choix</label>
-          {limited ? <label>Maximum de choix <input type="number" name={`${type}_max_choices`} min="1" max="50" value={maximum} onChange={event=>setMaximum(Math.max(1,Number(event.target.value)||1))} /></label> : null}
+          <label className="check-row">
+            <input
+              type="checkbox"
+              name={`${type}_limit_enabled`}
+              checked={limited}
+              onChange={(event) => setLimited(event.target.checked)}
+            />
+            Limiter le nombre de choix
+          </label>
+          {limited ? (
+            <label>
+              Maximum de choix{" "}
+              <input
+                type="number"
+                name={`${type}_max_choices`}
+                min="1"
+                max="50"
+                value={maximum}
+                onChange={(event) =>
+                  setMaximum(Math.max(1, Number(event.target.value) || 1))
+                }
+              />
+            </label>
+          ) : null}
         </div>
       </div>
       <div className="option-add">

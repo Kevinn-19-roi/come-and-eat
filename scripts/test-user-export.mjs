@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {usersCsv,csvCell,collectUserExport} from '../src/lib/user-export.ts';
+const empty=usersCsv([]);assert.ok(empty.startsWith('\ufeff'));assert.equal(empty.split('\r\n').length,2);
+const csv=usersCsv([{display_name:'Koné; "Awa"\nDeuxième ligne',email:'qa@example.invalid',phone:'+2250700000000',role:'customer'}]);
+assert.ok(csv.includes('Koné; ""Awa""\nDeuxième ligne'));assert.ok(csv.includes("'+2250700000000"));
+for(const value of ['=1+1','+SUM(A1)','-1+2','@SUM(A1)','\t=1',' \r\n=1'])assert.ok(csvCell(value).startsWith('"\''));
+const fixtures=Array.from({length:5000},(_,n)=>({display_name:`Utilisateur ${n}`,email:`qa${n}@example.invalid`}));
+const offsets=[];const collected=await collectUserExport(async(offset,limit)=>{offsets.push(offset);return fixtures.slice(offset,offset+limit)});
+assert.equal(collected.length,5000);assert.equal(offsets.at(-1),5000);assert.equal(usersCsv(collected).split('\r\n').length,5002);
+const filtered=await collectUserExport(async()=>fixtures.filter(row=>row.display_name==='Utilisateur 1234'));
+assert.equal(filtered.length,1);assert.ok(usersCsv(filtered).includes('Utilisateur 1234'));
+const route=await readFile('src/app/admin/users/export/route.ts','utf8');
+assert.ok(route.indexOf('await requireAdmin()')<route.indexOf('collectUserExport(async'));
+assert.match(route,/private, no-store/);assert.ok(!csv.includes('password'));
+console.log('Export CSV réellement généré : vide, accents, guillemets, retours ligne, formules, téléphone et 5 000 lignes simulées. Pagination et filtres testés ; contrôle de route statique, aucune lecture de vrais utilisateurs.');

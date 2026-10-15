@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
+import { requirePermission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import {retryEmailEvent,sendOrderStatusNotification,sendPaymentConfirmedNotifications} from "@/lib/notifications/service";
 const value = (form: FormData, name: string) =>
@@ -313,6 +314,7 @@ export async function saveSiteSetting(form: FormData) {
   const admin = await requireAdmin();
   const db = await createClient();
   const key = value(form, "key");
+  if (key === "marketplace_commission") await requirePermission("finance.configure");
   const entries = Array.from(form.entries()).filter(
     ([name]) => !["key"].includes(name),
   );
@@ -330,8 +332,39 @@ export async function saveSiteSetting(form: FormData) {
   revalidatePath("/admin/settings");
   revalidatePath("/");
 }
+export async function saveContactSettings(form: FormData) {
+  const admin = await requireAdmin();
+  const db = await createClient();
+  const phone = value(form, "phone");
+  const whatsapp = value(form, "whatsapp");
+  const validPhone = (entry: string) => !entry || /^\+?[0-9 ()-]{8,24}$/.test(entry);
+  if (!validPhone(phone) || !validPhone(whatsapp)) throw new Error("Vérifiez les numéros indiqués.");
+  const { data: current } = await db.from("site_settings").select("value").eq("key", "contact").maybeSingle();
+  const previous = current?.value && typeof current.value === "object" ? current.value as Record<string, unknown> : {};
+  const { error } = await db.from("site_settings").upsert({
+    key: "contact",
+    value: { ...previous, phone, whatsapp },
+    is_public: true,
+    updated_by: admin.id,
+  }, { onConflict: "key" });
+  if (error) throw error;
+  revalidatePath("/", "layout");
+  redirect("/admin/settings?saved=contact");
+}
+
+export async function startStatisticsPeriod(form: FormData) {
+  await requireAdmin();
+  const db = await createClient();
+  if (value(form, "confirmation") !== "NOUVELLE PÉRIODE") throw new Error("Confirmation incorrecte.");
+  const started = await db.rpc("admin_start_statistics_period");
+  if (started.error) throw started.error;
+  revalidatePath("/admin");
+  revalidatePath("/admin/settings");
+  redirect("/admin/settings?saved=statistics");
+}
 export async function saveCommissionSetting(form: FormData) {
   const admin = await requireAdmin();
+  await requirePermission("finance.configure");
   const db = await createClient();
   const rate = Number(value(form, "commission_rate"));
   if (!Number.isFinite(rate) || rate < 0 || rate > 100) throw new Error("La commission doit être comprise entre 0 et 100 %.");
@@ -377,6 +410,7 @@ export async function saveHomepageSection(form: FormData) {
     title: value(form, "title") || null,
     subtitle: value(form, "subtitle") || null,
     body: value(form, "body") || null,
+    media_id: value(form, "media_id") || null,
     sort_order: number(form, "sort_order"),
     is_visible: checked(form, "is_visible"),
   };

@@ -26,6 +26,9 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   images: {
+    // Serve existing assets directly: Vercel optimization currently returns 402.
+    // Keep next/image layout, lazy loading and alt text without that dependency.
+    unoptimized: true,
     remotePatterns: supabaseImagePattern,
   },
   async headers() {

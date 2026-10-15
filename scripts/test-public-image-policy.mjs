@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync('next.config.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports,process:{env:{NEXT_PUBLIC_SUPABASE_URL:'https://pazddhyqojhrdinaqryu.supabase.co'},cwd:()=>'.'},URL});
+assert.equal(exports.default.images.unoptimized,true);
+assert.ok(fs.statSync('public/brand/bloop-logo.jpg').size>0);
+assert.match(fs.readFileSync('src/config/site.ts','utf8'),/bloop: 'https:\/\/bloop-ci\.com'/);
+assert.match(fs.readFileSync('src/components/public-footer.tsx','utf8'),/Powered by <Image src="\/brand\/bloop-logo.jpg"/);
+assert.match(fs.readFileSync('src/components/public-footer.tsx','utf8'),/Created by Kevin Yeo/);
+console.log('Global next/image direct policy executed; official existing Bloop asset/link and creator credit verified.');

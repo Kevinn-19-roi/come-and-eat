@@ -1,6 +1,6 @@
 .discovery-cart-bar,.discovery-cart-space{display:none}
 .footer-signature .bloop-credit{display:inline-flex;align-items:center;gap:8px}
-.footer-signature .bloop-credit img{width:36px;height:36px;object-fit:contain;border-radius:6px}
+.footer-signature .bloop-credit img{width:48px;height:48px;object-fit:contain;border-radius:6px}
 /* Desktop only: supply the missing pseudo-element without changing mobile. */
 @media(min-width:1101px){
  .storefront .hero-food-frame::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(3,25,18,.86) 0%,rgba(3,25,18,.68) 32%,rgba(3,25,18,.28) 56%,transparent 78%)}

@@ -384,6 +384,24 @@ export async function saveEmailSettings(form: FormData) {
   revalidatePath("/admin/settings");
   redirect("/admin/settings?saved=email");
 }
+export async function saveCommitmentsImage(_state: {ok?:boolean;error?:string;message?:string}, form: FormData) {
+  const db = await adminDb();
+  const mediaId = value(form, 'media_id');
+  try {
+    if (mediaId) {
+      const media = await db.from('media').select('id').eq('id', mediaId).eq('is_public', true).eq('bucket', 'restaurant-media').maybeSingle();
+      if (media.error || !media.data) return {error:'Cette image n’est pas disponible. Sélectionnez une photo de la médiathèque.'};
+    }
+    const current = await db.from('homepage_sections').select('id').eq('section_key','concept').maybeSingle();
+    if (current.error) throw current.error;
+    const result = current.data
+      ? await db.from('homepage_sections').update({media_id:mediaId||null}).eq('id',current.data.id)
+      : await db.from('homepage_sections').insert({section_key:'concept',media_id:mediaId||null,is_visible:true});
+    if (result.error) throw result.error;
+    revalidatePath('/'); revalidatePath('/admin/content');
+    return {ok:true,message:mediaId?'Image des engagements enregistrée.':'Image par défaut rétablie.'};
+  } catch { return {error:'L’image n’a pas pu être enregistrée. Réessayez.'}; }
+}
 export async function saveHomepageSection(form: FormData) {
   const db = await adminDb();
   const id = value(form, "id");

@@ -18,4 +18,7 @@ for(const type of ['logo','cover','product']){
  slots=[];cursor=0;nodes=walk(exports.VendorMediaPicker({type,items:[item],initialPath:item.path}));assert.equal(nodes.find(n=>n.type==='Image').props.unoptimized,true);
  slots=[];cursor=0;nodes=walk(exports.VendorMediaPicker({type,items:[item]}));assert.equal(nodes.find(n=>n.type==='Image').props.unoptimized,true);
 }
-console.log('Shared picker executed with mocks: logo/cover/product, direct Storage previews, saved-path reload, gallery thumbnails, upload error preserves existing selection. No production writes.');
+slots=[];cursor=0;
+const fallbackProps={type:'other',items:[item],initialId:item.id,fallbackSrc:'/images/alloco.svg',clearLabel:'Revenir à l’image par défaut'};
+let fallbackNodes=walk(exports.VendorMediaPicker(fallbackProps));fallbackNodes.find(n=>n.type==='button'&&n.children.includes(fallbackProps.clearLabel)).props.onClick();cursor=0;fallbackNodes=walk(exports.VendorMediaPicker(fallbackProps));assert.equal(fallbackNodes.find(n=>n.type==='Image').props.src,fallbackProps.fallbackSrc);assert.equal(fallbackNodes.find(n=>n.props.name==='media_id').props.value,'');
+console.log('Shared picker executed with mocks: logo/cover/product, direct Storage previews, saved-path reload, gallery thumbnails, upload error preserves existing selection; CMS return-to-default clears media reference. No production writes.');

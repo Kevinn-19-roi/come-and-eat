@@ -99,6 +99,8 @@ export function VendorMediaPicker({
   items = [],
   initialId = "",
   initialPath = "",
+  fallbackSrc,
+  clearLabel = "Supprimer la photo",
 }: {
   name?: string;
   pathName?: string;
@@ -108,6 +110,8 @@ export function VendorMediaPicker({
   items?: MediaChoice[];
   initialId?: string;
   initialPath?: string;
+  fallbackSrc?: string;
+  clearLabel?: string;
 }) {
   const [chosen, setChosen] = useState<MediaChoice | undefined>(
     items.find((item) => item.id === initialId) ??
@@ -165,10 +169,10 @@ export function VendorMediaPicker({
               setPath("");
             }}
           >
-            Supprimer la photo
+            {clearLabel}
           </button>
         </div>
-      ) : null}
+      ) : fallbackSrc ? <div className="vendor-media-preview"><Image src={fallbackSrc} alt="Image par défaut" fill unoptimized sizes="180px" /></div> : null}
       <label className="upload-button">
         <input
           type="file"

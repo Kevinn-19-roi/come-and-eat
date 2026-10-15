@@ -1,6 +1,7 @@
-import { saveHomepageSection, saveSiteSetting } from "@/app/admin/actions";
+import { saveHomepageSection, saveSiteSetting, saveCommitmentsImage } from "@/app/admin/actions";
 import { AdminHeader } from "@/components/admin-ui";
-import { SubmitButton, VendorMediaPicker } from "@/components/vendor-forms";
+import { ActionForm, SubmitButton, VendorMediaPicker } from "@/components/vendor-forms";
+import { createClient } from '@/lib/supabase/server';
 import { storyFallback } from "@/config/story";
 import { requireAdmin } from "@/lib/auth/admin";
 import { getAdminContent, getAdminMedia } from "@/services/admin-marketplace";
@@ -19,9 +20,21 @@ export default async function Page() {
   const [{ settings, sections }, media] = await Promise.all([getAdminContent(), getAdminMedia()]);
   const values = Object.fromEntries(settings.map((setting) => [setting.key, setting.value as Record<string, unknown>]));
   const story = values.story ?? {};
+  const db = await createClient();
+  const {data:concept,error:conceptError} = await db.from('homepage_sections').select('media_id,media(id,path,file_name,alt_text)').eq('section_key','concept').maybeSingle();
+  if (conceptError) throw conceptError;
+  const currentMedia = Array.isArray(concept?.media)?concept.media[0]:concept?.media;
+  const conceptMedia = currentMedia ? [...media.filter(item=>item.id!==currentMedia.id),{...currentMedia,publicUrl:db.storage.from('restaurant-media').getPublicUrl(currentMedia.path).data.publicUrl}] : media;
   return <>
     <AdminHeader eyebrow="Textes administrables" title="Contenu du site" />
     <p className="admin-notice">Ces valeurs remplacent la configuration locale. Si une valeur manque, le site conserve automatiquement son texte de secours.</p>
+    <section className="admin-card vendor-form">
+      <h2>Image de la section Nos engagements</h2>
+      <p>L’image est affichée sur l’accueil, dans la section « Notre façon de cuisiner ». Le cadrage reste identique. Pour revenir à l’illustration d’origine, retirez la photo puis enregistrez.</p>
+      <ActionForm action={saveCommitmentsImage} submitLabel="Enregistrer l’image">
+        <VendorMediaPicker type="other" label="Ajouter ou remplacer l’image" items={conceptMedia} initialId={concept?.media_id??''} fallbackSrc="/images/alloco.svg" clearLabel="Revenir à l’image par défaut" />
+      </ActionForm>
+    </section>
     <section className="admin-card vendor-form story-admin-card">
       <h2>Section Histoire</h2>
       <p className="muted">Le texte et la photo apparaissent sur la page Notre histoire.</p>

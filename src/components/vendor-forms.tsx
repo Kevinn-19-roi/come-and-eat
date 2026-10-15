@@ -153,6 +153,7 @@ export function VendorMediaPicker({
         <div className="vendor-media-preview">
           <Image
             src={chosen.publicUrl}
+            unoptimized
             alt={chosen.alt_text || "Photo sélectionnée"}
             fill
             sizes="180px"
@@ -192,6 +193,7 @@ export function VendorMediaPicker({
               >
                 <Image
                   src={item.publicUrl}
+                  unoptimized
                   alt={item.alt_text || item.file_name}
                   fill
                   sizes="90px"
